@@ -1,6 +1,6 @@
 
 #FLASK SETTINGS
-DEBUG = True
+DEBUG = False
 CSRF_ENABLED = False
 SECRET_KEY = 'pksd33r3fmn123'
 

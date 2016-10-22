@@ -1,4 +1,7 @@
 #!flask/bin/python
 from app import app
+from app import socketio
 
-app.run(host=app.config['GLOBAL_HOST'], port = app.config['GLOBAL_PORT'], debug = app.config['DEBUG'], threaded=True)
+#print "5"
+#app.debug=True
+socketio.run(app)
