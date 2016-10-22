@@ -10,7 +10,7 @@ import logging
 import string, random
 
 logr = logging.getLogger('SonicPlatform.blueprint_chan')
-chan_B = Blueprint('users', __name__)
+chan_B = Blueprint('chan', __name__)
 
 @chan_B.route('/chat', methods = ['POST'])
 def chat():
