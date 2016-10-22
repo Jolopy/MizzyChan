@@ -1,6 +1,5 @@
-from app import app
+from app import app, socketio
 from flask import render_template, redirect, jsonify, request, session, abort, Markup
-import markdown
 import mailing
 import forms
 import userDAO
@@ -11,7 +10,7 @@ from functions import get_db
 from blueprint_static import static_B
 from blueprint_users import users_B
 from sessions import MongoSessionInterface
-import os
+from flask_socketio import SocketIO, emit
 
 app.session_interface = MongoSessionInterface()
 
@@ -55,6 +54,10 @@ def apply_caching(response):
 @app.route('/index', methods = ['GET'])
 @app.route('/', methods = ['GET'])
 def index():
+
+    db = get_db()
+
+
     return render_template('index.html')
 
 @app.route('/trending', methods = ['GET'])

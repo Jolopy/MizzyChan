@@ -5,7 +5,10 @@ import ConfigParser
 
 def connect_db():
     connection = pymongo.MongoClient(app.config['MONGO_HOST'], app.config['MONGO_PORT'])
-    if app.config['MONGO_AUTHENTICATION_DATABASE'] == None:
+    if all(not x for x in (app.config['MONGO_AUTHENTICATION_DATABASE'],
+                           app.config['MONGO_USER'])):
+        pass
+    elif app.config['MONGO_AUTHENTICATION_DATABASE'] == None:
         getattr(connection, app.config['MONGO_DATABASE']).authenticate(app.config['MONGO_USER'],
                                                                        app.config['MONGO_PASS'])
     else:

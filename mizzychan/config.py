@@ -19,12 +19,12 @@ MAIL_USERNAME = ''
 MAIL_PASSWORD = ''
 
 #MONGO_SETTINGS
-MONGO_HOST = 'localhost'
+MONGO_HOST = '52.54.134.145'
 MONGO_PORT = 27017
-MONGO_DATABASE = 'mizztchan'
-MONGO_AUTHENTICATION_DATABASE = 'admin' #set to None to use same database for auth and connection
-MONGO_USER = 'admin'
-MONGO_PASS = 'Peace1324'
+MONGO_DATABASE = 'mizzychan'
+MONGO_AUTHENTICATION_DATABASE = None #set to None to use same database for auth and connection
+MONGO_USER = None
+MONGO_PASS = None
 
 #USER AUTHENTICATION SETTINGS
 SESSION_TIMEOUT_MINUTES = 10080
