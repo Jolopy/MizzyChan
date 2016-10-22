@@ -1,6 +1,7 @@
-from app import app
+from app import app, socketio
 from flask import Blueprint, render_template, flash, redirect, request, url_for, session, abort, jsonify
 import mailing
+from flask.ext.socketio import emit, join_room
 import forms
 import userDAO
 from decorators import requireLoginLevel
@@ -9,6 +10,10 @@ import logging
 
 logr = logging.getLogger('SonicPlatform.blueprint_users')
 users_B = Blueprint('users', __name__)
+
+
+
+
 
 @users_B.route('/verifylogin', methods = ['POST'])
 def verifylogin():
