@@ -1,0 +1,747 @@
+from app import app
+from flask import Blueprint, render_template, redirect, jsonify, send_file, request, session, abort, flash
+from functions import get_db, get_db_audit, get_db_proc
+from decorators import requireLoginLevel
+from bson import ObjectId
+import logging
+import ConfigParser
+import forms
+from aws.aws import aws, awsLongRunning
+import os
+import pwd, grp
+from auxUtils.bashConvert import bashConvert
+from auxUtils.autoPirana.expctUtils import hasPassphrase, checkPassphrase
+import datetime
+from .auxUtils.autoPirana import piranaInterface
+from siteAudit.siteAudit import SiteAudit
+
+logr = logging.getLogger('SonicPlatform.blueprint_awsClusters')
+awsClusters_B = Blueprint('awsClusters', __name__)
+
+@awsClusters_B.route('/getKeys', methods = ['GET'])
+@requireLoginLevel(2)
+def getKeysNull(cid):
+    return abort(404)
+
+
+@awsClusters_B.route('/getKeys/<path:cid>', methods = ['GET'])
+@requireLoginLevel(2)
+def getKeys(cid):
+    
+    db = get_db()
+    userClusterIds = db.users.find_one({'_id':session['user']},{'_id':0,'clusters':1})['clusters']
+    
+    if ObjectId(cid) in userClusterIds:        
+        userCluster = db.clusters.find_one({'_id': ObjectId(cid)}, {'_id':0, 'setupPercent':1, 'tempInfo':1})
+
+        if ('setupPercent' in userCluster) and ('tempInfo' in userCluster):
+            if (userCluster['setupPercent'] == 100):
+                db.clusters.update({'_id': ObjectId(cid)}, {"$unset":{"tempInfo":"","setupPercent":"","setupStatus":""}})
+                audit = SiteAudit(get_db().siteAudit, session['user'])
+                audit.keyDownloaded(cid)
+                return send_file(app.config['KEYS_FOLDER']+userCluster['tempInfo']['keyfile'], attachment_filename=userCluster['tempInfo']['keyfile'],as_attachment=True)
+                
+            else:
+                return abort(403)
+        else:
+            return abort(403)
+    else:
+        return abort(403)
+
+#This is the first of four routes used by ajax to get information for the clusters page.
+@awsClusters_B.route('/clustersAlpha', methods = ['GET', 'POST'])
+@requireLoginLevel(2)
+def clustersAlpha():
+    
+    db = get_db()
+    
+    out = {'r':[]}  
+    
+    userClusterIds = db.users.find_one({'_id':request.json['user']},{'_id':0,'clusters':1})['clusters']
+   
+    if 'cluster' in request.json and ObjectId(request.json['cluster']) in userClusterIds:
+        
+        userClusters = db.clusters.find({'_id': ObjectId(request.json['cluster'])}, {'nodes':1, 'type':1, 'status':1, 'name':1, 'audit':1}).sort([('dateCreated',-1)])
+    else:
+        userClusters = db.clusters.find({'_id': {'$in':userClusterIds}}, {'nodes':1, 'type':1, 'status':1, 'name':1, 'audit':1}).sort([('dateCreated',-1)])
+    
+    for cluster in userClusters:
+        
+        cluster['_id'] = str(cluster['_id'])
+        out['r'].append(cluster)       
+    
+    return jsonify(out)
+
+#This second route used by ajax began as a test but I ended up using it exclusively for some reason
+#The only real difference here is that the object ids are returned as the key in a dict instead of in the array, pretty dumb
+#eventually I will just merge this "functionality" with the other route 
+@awsClusters_B.route('/clustersBeta', methods = ['GET', 'POST'])
+@requireLoginLevel(2)
+def clustersBeta():
+    
+    db = get_db()
+    
+    out = {'r':{}}  
+    
+    userClusterIds = db.users.find_one({'_id':request.json['user']},{'_id':0,'clusters':1})['clusters']
+    
+    if 'cluster' in request.json and ObjectId(request.json['cluster']) in userClusterIds:
+        userClusters = db.clusters.find({'_id': ObjectId(request.json['cluster'])}, {'nodes':1, 'type':1, 'status':1, 'name':1}).sort([('dateCreated',-1)])
+    else:
+        userClusters = db.clusters.find({'_id': {'$in':userClusterIds}}, {'nodes':1, 'type':1, 'status':1, 'name':1}).sort([('dateCreated',-1)])
+    
+    for cluster in userClusters:
+        
+        cluster['_id'] = str(cluster['_id'])
+        out['r'][cluster['_id']] = cluster     
+    
+    return jsonify(out)
+
+#the third route for ajax info. Getting a little weird at this point hmm? This one is actually a little different though. 
+#the only purpose here is to get the status of everything, the cluster itself as well as each node in the cluster, so its a small amount of data overall
+@awsClusters_B.route('/getClustersInfo', methods = ['POST'])
+@requireLoginLevel(2)
+def getClustersInfo():
+    
+    db = get_db()
+    out = {}
+    
+    userClusterIds = db.users.find_one({'_id':session['user']},{'_id':0,'clusters':1})['clusters']    
+    
+    if 'cluster' in request.json and request.json['cluster'] in userClusterIds:
+        userClusterIds = [ObjectId(request.json['cluster'])]    
+    
+    for clusterId in  userClusterIds:
+        cObj = db.clusters.find_one({'_id':clusterId})
+        if cObj == None:
+            out[str(clusterId)] = {'status':'error','nodes':{'error':"Cluster %s Registered to user, but not in clusters collection!" % (str(clusterId))}}
+        else:
+            out[str(clusterId)] = {'status':cObj['status']}        
+            for instance in cObj['nodes']:
+                out[str(clusterId)][instance['inst']] = instance['status']   
+        
+    return jsonify({'r':out})
+
+#the final ajax route is really only used to check the progress of a cluster creation, but currently it is still being read even if 
+#the cluster is not being created. In that case it only returns the status, so not much of a bandwidth hogger, but could be better...
+@awsClusters_B.route('/getClustersProgress', methods = ['POST'])
+@requireLoginLevel(2)
+def getClustersProgress():
+    
+    db = get_db()
+    out = {}
+
+    userClusterIds = db.users.find_one({'_id':session['user']},{'_id':0,'clusters':1})['clusters']
+
+    for clusterId in  userClusterIds:
+        cObj = db.clusters.find_one({'_id':clusterId})
+        if cObj == None:
+            out[str(clusterId)] = {'status':'error','nodes':[{'error':"Cluster %s Registered to user, but not in clusters collection!" % (str(clusterId))}]}
+            logr.error('Error: Cluster %s Registered to user, but not in clusters collection!' % (str(clusterId)))
+        elif ('termPercent' in cObj) and ('termStatus' in cObj):
+            out[str(clusterId)] = {'termPercent':cObj['termPercent'], 'termStatus':cObj['termStatus'], 'status':cObj['status']}
+            if "tempInfo" in cObj:
+                out[str(clusterId)]['ip'] = cObj['tempInfo']['headNodeIp']
+        elif ('setupPercent' in cObj) and ('setupStatus' in cObj):
+
+            out[str(clusterId)] = {'setupPercent':cObj['setupPercent'], 'setupStatus':cObj['setupStatus'], 'status':cObj['status']}
+            if "tempInfo" in cObj:
+                out[str(clusterId)]['ip'] = cObj['tempInfo']['headNodeIp']
+        else:
+            out[str(clusterId)] = {'status':cObj['status']}
+            if len(cObj['nodes']) > 0:
+                out[str(clusterId)]['ip'] = cObj['nodes'][0]['publicip']
+
+    return jsonify({'r':out})
+    
+@awsClusters_B.route('/clusters', methods = ['GET', 'POST'])
+@requireLoginLevel(2)
+def clusters():    
+    
+    db = get_db()
+    admin = False
+
+    if db.users.find_one({'_id':session['user']},{'aws_can_create_cluster':1})['aws_can_create_cluster'] == True:
+        userCreateClusterForm = forms.userCreateClusterForm([])
+    else:
+        userCreateClusterForm = None 
+    if session['level'] == 1:        
+        users = db.users.find({},{'_id':1})        
+        admin = users
+    userClusterIds = db.users.find_one({'_id':session['user']},{'_id':0,'clusters':1})['clusters']
+    clusters = db.clusters.find({'_id':{'$in':userClusterIds}},{'_id':1,'name':1}).sort([('dateCreated',-1)])
+    cout = []
+    for cluster in clusters:
+        cluster['_id'] = str(cluster['_id'])
+        cout.append(cluster)
+
+    hasPass = hasPassphrase(session['user'])
+    
+    return render_template('mf_clusters.html', user=session['user'], userCreateClusterForm=userCreateClusterForm, admin=admin, pageType = "overview", clusters=cout, pageSpecific = True, userHasPassphrase=hasPass)
+
+@awsClusters_B.route('/clusters/errors', methods = ['GET', 'POST'])
+@requireLoginLevel(2)
+def clusterErrors():
+
+    audit = SiteAudit(get_db().siteAudit, session['user'])
+    skip = request.args.get('skip', 0)
+    errors = audit.getErrors(skip)
+    skip = str(int(skip) + 1)
+
+    return render_template('mf_clusterErrors.html', errors=errors, skip=skip)
+
+
+@awsClusters_B.route('/checkPs', methods = ['GET', 'POST'])
+@requireLoginLevel(2)
+def checkPs():
+
+    if 'pw' in request.json:
+        res = checkPassphrase(session['user'], request.json['pw'])
+        return jsonify({'r':res})
+    else:
+        return abort(403)
+
+@awsClusters_B.route('/checkData', methods = ['GET', 'POST'])
+@requireLoginLevel(2)
+def checkData():
+
+    if app.config.get('OPTION_AUTO_SETUP', False) == True:
+        db = get_db()
+        userClusters = db.users.find_one({'_id':session['user']})
+        cid = ObjectId(request.json['cid'])
+
+        if 'cid' in request.json and cid in userClusters.get('clusters', []):
+            PInt = piranaInterface.PiranaInterface()
+            name = db.clusters.find_one({'_id':cid}).get('name', 'none')
+            ret = PInt.checkClusterHasData(session['user'], name)
+            return jsonify({'ret':ret})
+        else:
+            return abort(403)
+    else:
+        return jsonify({'ret':False})
+
+@awsClusters_B.route('/debugPirana', methods = ['GET', 'POST'])
+@requireLoginLevel(2)
+def debugPirana():
+    import os
+    #from aws.clusterModifier.AutomatedSetup import updateMPI
+    PInt = piranaInterface.PiranaInterface(os.path.join(app.config['PRIVATE_KEYS_FOLDER'],session['user']), 'pkmn123')
+    PInt.setupNew('54.173.124.94',session['user'], 'paul2_20150309_1s')
+
+    #updateMPI('54.152.12.117', 'ubuntu', 'sona1111_20150306_asvsavsav.pem')
+
+    
+    return 'yay'
+
+@awsClusters_B.route('/clusters/elastic', methods = ['GET', 'POST'])
+@requireLoginLevel(2)
+def clustersElastic():    
+    
+    db = get_db()
+    admin = False
+    userobj = db.users.find_one({'_id':session['user']})
+    pageVars = {}
+    if userobj['aws_can_create_cluster'] == True:
+
+        if type(userobj['aws_additional_sizes']) == list:
+            awsAdtlSizes = userobj['aws_additional_sizes']
+        else:
+            awsAdtlSizes = []
+
+        if app.config['OPTION_AUTO_SETUP'] == True:
+            try:
+                pwd.getpwnam(session['user'])
+            except KeyError:
+                userCreateClusterForm = forms.userCreateClusterForm(awsAdtlSizes)
+                flash("The user '%s' does not exist on the linux server, local changes will fail!" % session['user'], "danger")
+            else:
+
+
+                localMount = '/home/' + session['user'] + app.config['PIRANA_LOCAL_MOUNTING_EXTENSION']
+                if not all((os.access(localMount, os.R_OK), os.access(localMount, os.W_OK), os.access(localMount, os.X_OK),)):
+                    flash('Error, insufficient permissions for %s, can not create SFTP mounting automatically' % localMount, 'danger')
+
+                localMount = '/home/' + session['user'] + '/.pirana'
+                if not all((os.access(localMount, os.R_OK), os.access(localMount, os.W_OK), os.access(localMount, os.X_OK),)):
+                    flash('Error, insufficient permissions for %s, can not set up pirana automatically' % localMount, 'danger')
+
+                groups = [g.gr_name for g in grp.getgrall() if session['user'] in g.gr_mem]
+                gid = pwd.getpwnam(session['user']).pw_gid
+                groups.append(grp.getgrgid(gid).gr_name)
+                if app.config['SONIC_GROUP'] not in groups:
+                    flash('Error, the current user %s is not in the required group %s' % (session['user'], app.config['SONIC_GROUP']) , 'danger')
+                    userCreateClusterForm = forms.userCreateClusterForm(awsAdtlSizes)
+                else:
+                    hasPass = hasPassphrase(session['user'])
+                    if hasPass == True:
+                        userCreateClusterForm = forms.userCreateClusterFormPassphrase(awsAdtlSizes, session['user'])
+                    elif hasPass == False:
+                        userCreateClusterForm = forms.userCreateClusterForm(awsAdtlSizes)
+                    else:
+                        userCreateClusterForm = forms.userCreateClusterForm(awsAdtlSizes)
+                        flash(hasPass, 'danger')
+
+
+        else:
+            userCreateClusterForm = forms.userCreateClusterForm(awsAdtlSizes)
+
+
+
+
+        # creating new cluster
+        if userCreateClusterForm.validate_on_submit():   
+ 
+
+
+            if userobj['aws_can_create_cluster'] == True:
+                aaki = userobj['aws_access_key_id']
+                asak = userobj['aws_secret_access_key']
+                region = userobj['aws_region']
+                placements = userobj['aws_placements'].split(',')
+
+                #fix clustername
+                name = userCreateClusterForm.name.data.replace(' ','_').replace('\t','')
+                name = "%s_%s_%s" % (session['user'], datetime.datetime.now().strftime("%Y%m%d"), name)
+
+                #make sure that that name is not already used in that aws account, this will cause issues with the keys
+                if (db.clusters.find_one({"name":name}) == None):
+                    creator = awsLongRunning(get_db_proc(), aaki, asak, region)
+                    #if userCreateClusterForm.audit.data == True:
+                    if app.config.get('AUDIT_ENABLE', False) == True:
+                        audit = get_db_audit()
+                        auditURL = app.config['AUDIT_URL']
+
+                    else:
+                        audit = None
+                        auditURL = None
+
+                    defaultconf = ConfigParser.ConfigParser()
+                    defaultconf.read(app.config['AWS_CONFIG_FILE'])
+                    if defaultconf.has_option('NODE_CPU_CORES',userCreateClusterForm.size.data):
+                        slots = defaultconf.get('NODE_CPU_CORES',userCreateClusterForm.size.data)
+                    else:
+                        slots=1
+
+
+
+                    config = {'aaki': aaki,
+                              'asak': asak,
+                              'region' : region,
+                              'placements':placements,
+                              'headAMI':userobj['aws_headAMI'],
+                              'computeAMI':userobj['aws_computeAMI'],
+                              'numNodes':int(userCreateClusterForm.numComputeNodes.data),
+                              'prefix':name,
+                              'user':session['user'],
+                              'type':userobj['aws_type'],
+                              'size':userCreateClusterForm.size.data,
+                              'audit':audit,
+                              'auditURL':auditURL,
+                              'slots':slots,
+                              'security_group_ip':app.config.get('SECURITY_GROUP_IP', '0.0.0.0/0')}
+                    
+                    if 'OPTION_AUTO_SETUP' in app.config and app.config['OPTION_AUTO_SETUP'] == True:
+                        config['OPTION_AUTO_SETUP'] = True
+                        if hasattr(userCreateClusterForm, 'passphrase'):
+                            config['passphrase'] = userCreateClusterForm.passphrase.data
+                        else:
+                            config['passphrase'] = None
+                    #kwargs = aaki, asak, headAMI, computeAMI, numNodes, prefix=prefix, user=user, type=type
+                    
+                    cid = creator.createXMemberCluster(**config)
+                    audit = SiteAudit(get_db().siteAudit, session['user'])
+                    audit.createCluster(cid)
+                    #time.sleep(0.5)
+                    return redirect('/clusters/elastic')
+                
+                else:
+                    header = "Cluster Creation Error"
+                    body = "Sorry, that name is already taken in the Amazon web services account used by this service, please try another."
+                    return render_template('mf_completepage.html', header=header, body=body, user = session['user'])
+            else:
+                header = "Cluster Creation Error"
+                body = """It seems that Your account has not yet been set up for Automatic Cluster Creation. 
+                If you believe you have received this message in error, please contact Rudraya. 
+                """
+                return render_template('mf_completepage.html', header=header, body=body, user = session['user'])        
+        # --------------------
+    else:
+        userCreateClusterForm = None 
+    if session['level'] == 1:        
+        users = db.users.find({},{'_id':1})        
+        admin = users
+    userClusterIds = db.users.find_one({'_id':session['user']},{'_id':0,'clusters':1})['clusters']
+    clusters = db.clusters.find({'_id':{'$in':userClusterIds}},{'_id':1,'name':1}).sort([('dateCreated',1,)])
+    cout = []
+    for cluster in clusters:
+
+        cluster['_id'] = str(cluster['_id'])
+        cout.append(cluster)
+    pageVars['user'] = session['user']
+    pageVars['userCreateClusterForm'] = userCreateClusterForm
+    pageVars['admin'] = admin
+    pageVars['pageType'] = "elastic"
+    pageVars['clusters'] = cout
+    pageVars['pageSpecific'] = True
+
+
+    
+    return render_template('mf_clusters.html', **pageVars)
+
+
+@awsClusters_B.route('/clusters/specific/<path:specificCluster>', methods = ['GET', 'POST'])
+@requireLoginLevel(2)
+def clustersTab(specificCluster):
+    
+    db = get_db()
+    userClusterIds = db.users.find_one({'_id':session['user']},{'_id':0,'clusters':1})['clusters']
+    if ObjectId(specificCluster) in userClusterIds:
+        admin = False
+        if db.users.find_one({'_id':session['user']},{'aws_can_create_cluster':1})['aws_can_create_cluster'] == True:
+            userCreateClusterForm = forms.userCreateClusterForm([])
+        else:
+            userCreateClusterForm = None 
+        if session['level'] == 1:        
+            users = db.users.find({},{'_id':1})        
+            admin = users
+        
+        clusters = db.clusters.find({'_id':{"$in":userClusterIds}},{'_id':1,'name':1}).sort([('dateCreated',-1)])
+        cout = []
+        for cluster in clusters:
+            cluster['_id'] = str(cluster['_id'])
+            cout.append(cluster) 
+            if cluster['_id'] == specificCluster:
+                pageSpecific = cluster
+        
+        hasPass = hasPassphrase(session['user'])
+
+        return render_template('mf_clusters.html', user=session['user'], userCreateClusterForm=userCreateClusterForm, admin=admin, pageType="clusterSpecific", clusters=cout, pageSpecific = pageSpecific, userHasPassphrase=hasPassphrase(session['user']))
+    
+    return abort(403)
+
+@awsClusters_B.route('/clusters/audit/<path:specificCluster>', methods = ['GET', 'POST'])
+@requireLoginLevel(1)
+def clustersAudit(specificCluster):
+    
+
+        
+    audit = get_db_audit()
+    if 'skip' in request.args:
+        skip = int(request.args['skip'])
+        auditsRaw = getattr(audit, specificCluster).find({'_id':{'$ne':'info'}},{'_id':0,'@timestamp':1,'message':1}).sort([('@timestamp',-1)]).skip(skip)
+
+    else:
+        skip = 0
+        auditsRaw = getattr(audit, specificCluster).find({'_id':{'$ne':'info'}},{'_id':0,'@timestamp':1,'message':1}).sort([('@timestamp',-1)])
+
+    info = getattr(audit, specificCluster).find_one({'_id':'info'})
+
+
+
+    audits = []
+    MAX = 50
+    n = 0
+    for obj in auditsRaw:
+        raw1 = {}
+
+        if n <= MAX:
+
+            raw2 = [x.split('=') for x in obj['message'].split(' ')]
+            for item in raw2:
+                if len(item) > 1:
+                    raw1[item[0]] = item[1]
+
+
+            if 'type' in raw1 and raw1['type'] == 'TTY':
+
+                out = {}
+                out['date'] = obj['@timestamp']
+                out['data'] = bashConvert(raw1['data']).decode('utf8')
+                out['uid'] = raw1['uid'].decode('utf8')
+                audits.append(out)
+                n += 1
+
+
+        else:
+            break
+    if n > MAX:
+        skip = skip + 50
+    else:
+        skip = None
+
+
+    return render_template('mf_audits.html', user=session['user'], audits = audits, skip=str(skip), specificCluster=specificCluster, info=info)
+    
+
+    
+@awsClusters_B.route('/clusters/audit/raw/<path:specificCluster>', methods = ['GET', 'POST'])
+@requireLoginLevel(1)
+def clustersAuditRaw(specificCluster):
+    
+
+        
+    audit = get_db_audit()
+    if 'skip' in request.args:
+        skip = int(request.args['skip'])
+        auditsRaw = getattr(audit, specificCluster).find({'_id':{'$ne':'info'}},{'_id':0,'@timestamp':1,'message':1}).sort([('@timestamp',-1)]).skip(skip)
+
+    else:
+        auditsRaw = getattr(audit, specificCluster).find({'_id':{'$ne':'info'}},{'_id':0,'@timestamp':1,'message':1}).sort([('@timestamp',-1)])
+        skip = 0
+
+    info = getattr(audit, specificCluster).find_one({'_id':'info'})
+
+    audits = []
+    MAX = 50
+    n = 0
+    for obj in auditsRaw:
+        raw1 = {}
+
+        if n <= MAX:
+
+            out = {}
+            out['date'] = obj['@timestamp']
+            out['data'] = obj['message']
+            audits.append(out)
+            n += 1
+
+        else:
+            break
+    if n > MAX:
+        skip = skip + 50
+    else:
+        skip = None
+
+    return render_template('mf_audits_raw.html', user=session['user'], audits = audits, skip=str(skip), specificCluster=specificCluster, info=info)
+
+
+
+#A route to request the state of a single instance
+#Takes: instance-id
+#Returns: status (string)
+@awsClusters_B.route('/inststatus', methods = ['POST'])
+@requireLoginLevel(2)
+def inststatus():
+
+    db = get_db()
+    userobj = db.users.find_one({'_id':session['user']})
+
+    awsObj = aws(userobj['aws_access_key_id'], userobj['aws_secret_access_key'])
+    status = awsObj.checkInstanceStatus(request.json['id'])
+    if status != None:
+        return jsonify({'status':status})
+    else:
+        return jsonify({'status':'Please Wait...'})
+
+
+#DONT USE THIS BLOCK, OUTDATED
+@awsClusters_B.route("/createNewCluster", methods = ['POST'])
+@requireLoginLevel(2)
+def createNewCluster():
+    #**no longer used, routes have been combined**
+    return abort(404)
+
+    
+@awsClusters_B.route("/terminateCluster", methods = ['POST'])
+@requireLoginLevel(2)
+def terminateCluster():
+
+
+    db = get_db()
+    userClusterIds = db.users.find_one({'_id':session['user']},{'_id':0,'clusters':1})['clusters']
+    
+    if ('sid' in request.json) and (ObjectId(request.json['sid']) in userClusterIds):    
+        userobj = db.users.find_one({'_id':session['user']})
+
+        if userobj['aws_can_create_cluster']:
+
+
+
+            cStatus = db.clusters.find_one({"_id":ObjectId(request.json['sid'])})['status']
+
+
+            if cStatus in ['stopped','running','partially running','preparing','uninitialized','terminating']:
+            
+                aaki = userobj['aws_access_key_id']
+                asak = userobj['aws_secret_access_key']
+                region = userobj['aws_region']
+                deleter = awsLongRunning(db, aaki, asak, region)
+                audit = get_db_audit()
+                config = {'aaki': aaki,
+                          'asak': asak,
+                          'region' : region,
+                          'sid':request.json['sid'],
+                          'audit':audit,
+                          'user':session['user']}
+
+                if 'OPTION_AUTO_SETUP' in app.config and app.config['OPTION_AUTO_SETUP'] == True:
+                    config['OPTION_AUTO_SETUP'] = True
+                #kwargs = aaki, asak, sid
+                audit = SiteAudit(get_db().siteAudit, session['user'])
+                audit.terminateCluster(request.json['sid'])
+                if cStatus in ['preparing','uninitialized','terminating']:
+                    #deleter.createXMemberCluster_ab(request.json['sid'], config)
+                    pass
+                elif cStatus in ['stopped', 'partially running']:
+
+                    deleter.bringUpThanTerminate(ObjectId(request.json['sid']), **config)
+                else:
+                    pass
+                    #deleter.deleteXMemberCluster(**config)
+                #time.sleep(0.5)
+
+
+            return redirect('/clusters/elastic')
+            
+            
+        else:
+            header = "Cluster Deletion Error"
+            body = """It seems that Your account has not yet been set up for Cluster Deletion. 
+            If you believe you have received this message in error, please contact Rudraya. 
+            """
+            return render_template('mf_completepage.html', header=header, body=body, user = session['user'])
+    else:
+        return abort(403)
+
+  
+@awsClusters_B.route('/shutDownCluster', methods = ['POST'])
+@requireLoginLevel(2)
+def shutDownCluster():
+    
+    db = get_db()
+    userClusterIds = db.users.find_one({'_id':session['user']},{'_id':0,'clusters':1})['clusters']
+    
+    if ('id' in request.json) and (ObjectId(request.json['id']) in userClusterIds):
+            
+        currentStatus = db.clusters.find_one({'_id':ObjectId(request.json['id'])}, {'_id':0,'status':1})['status']
+        
+        if currentStatus in ["running","partially running"]:
+            audit = SiteAudit(get_db().siteAudit, session['user'])
+            audit.stopCluster(request.json['id'])
+            userobj = db.users.find_one({'_id':session['user']})
+            awsObj = awsLongRunning(db, userobj['aws_access_key_id'], userobj['aws_secret_access_key'],userobj['aws_region'])
+            db.clusters.update({'_id':ObjectId(request.json['id'])}, {"$set":{"status":"turning off"}})
+            awsObj.shutDownCluster(ObjectId(request.json['id']))
+            return jsonify({'r':'ok'})
+
+        elif currentStatus == "turning off":
+            return jsonify({'r':'already shutting down'})
+        elif currentStatus == "turning on":
+            return jsonify({'r':'currently in the process of booting up, please wait'})
+        elif currentStatus == "off":
+            return jsonify({'r':'already shut down'})
+        else:
+            return jsonify({'r':'cluster not running'})
+            
+    
+    return abort(403)
+
+@awsClusters_B.route('/startUpCluster', methods = ['POST'])
+@requireLoginLevel(2)
+def startUpCluster():
+    
+    db = get_db()
+    userClusterIds = db.users.find_one({'_id':session['user']},{'_id':0,'clusters':1})['clusters']
+    
+    if ('id' in request.json) and (ObjectId(request.json['id']) in userClusterIds):
+            
+        currentStatus = db.clusters.find_one({'_id':ObjectId(request.json['id'])}, {'_id':0,'status':1})['status']
+        
+        if currentStatus == "stopped":
+            audit = SiteAudit(get_db().siteAudit, session['user'])
+            audit.startCluster(request.json['id'])
+            userobj = db.users.find_one({'_id':session['user']})
+            awsObj = awsLongRunning(db, userobj['aws_access_key_id'],userobj['aws_secret_access_key'], userobj['aws_region'])
+            db.clusters.update({'_id':ObjectId(request.json['id'])}, {"$set":{"status":"turning on"}})
+            if 'pw' in request.json:
+                awsObj.startUpCluster(ObjectId(request.json['id']), pw=request.json['pw'])
+            else:
+                awsObj.startUpCluster(ObjectId(request.json['id']))
+            return jsonify({'r':'ok'})
+
+        elif currentStatus == "turning on":
+            return jsonify({'r':'already starting up'})
+        elif currentStatus == "turning off":
+            return jsonify({'r':'currently in the process of shutting down, please wait'})
+        elif currentStatus == "running":
+            return jsonify({'r':'already running'})
+        else:
+            return jsonify({'r':'cluster not shut down'})
+    
+    return abort(403)
+
+@awsClusters_B.route('/shutDownInstance', methods = ['POST'])
+@requireLoginLevel(2)
+def shutDownInstance():
+    
+    db = get_db()
+    userClusterIds = db.users.find_one({'_id':session['user']},{'_id':0,'clusters':1})['clusters']
+    
+    if ('cid' in request.json) and (ObjectId(request.json['cid']) in userClusterIds):
+                    
+        cObj = db.clusters.find_one({'_id':ObjectId(request.json['cid']), 'nodes':{'$elemMatch': {'inst': request.json['iid']}}},{'nodes.$.status':1, 'status':1})
+        currentStatus = cObj['nodes'][0]['status']
+        clusterStatus = cObj['status']
+        if clusterStatus in ['uninitialized', 'preparing', 'terminating']:
+            return jsonify({'r':'cluster is not ready'})
+        else:
+            if currentStatus == "stopping":
+                return jsonify({'r':'already shutting down'})
+            elif currentStatus == "pending":
+                return jsonify({'r':'currently in the process of booting up, please wait'})
+            elif currentStatus == "stopped":
+                return jsonify({'r':'already shut down'})
+            else:
+                audit = SiteAudit(get_db().siteAudit, session['user'])
+                audit.stopInstance(request.json['cid'], request.json['iid'])
+                userobj = db.users.find_one({'_id':session['user']})
+                awsObj = awsLongRunning(db, userobj['aws_access_key_id'], userobj['aws_secret_access_key'], userobj['aws_region'])
+                awsObj.shutDownInstance(cid=request.json['cid'], iid=request.json['iid'])
+                return jsonify({'r':'ok'})
+
+    
+    return abort(403)
+
+@awsClusters_B.route('/startUpInstance', methods = ['POST'])
+@requireLoginLevel(2)
+def startUpInstance():
+    
+    db = get_db()
+    userClusterIds = db.users.find_one({'_id':session['user']},{'_id':0,'clusters':1})['clusters']
+    
+    if ('cid' in request.json) and (ObjectId(request.json['cid']) in userClusterIds):
+                 
+        cObj = db.clusters.find_one({'_id':ObjectId(request.json['cid']), 'nodes':{'$elemMatch': {'inst': request.json['iid']}}},{'nodes.$.status':1, 'status':1})
+        currentStatus = cObj['nodes'][0]['status']
+        clusterStatus = cObj['status']
+        if clusterStatus in ['uninitialized', 'preparing', 'terminating']:
+            return jsonify({'r':'cluster is not ready'})
+        else:
+            if currentStatus == "pending":
+                return jsonify({'r':'already starting up'})
+            elif currentStatus == "stopping":
+                return jsonify({'r':'currently in the process of shutting down, please wait'})
+            elif currentStatus == "running":
+                return jsonify({'r':'already running'})
+            else:
+                audit = SiteAudit(get_db().siteAudit, session['user'])
+                audit.startInstance(request.json['cid'], request.json['iid'])
+                userobj = db.users.find_one({'_id':session['user']})
+                awsObj = awsLongRunning(db, userobj['aws_access_key_id'], userobj['aws_secret_access_key'], userobj['aws_region'])
+                awsObj.startUpInstance(cid=request.json['cid'], iid=request.json['iid'])
+                return jsonify({'r':'ok'})
+
+            
+    return abort(403)
+
+@awsClusters_B.route('/getInstanceInfo', methods = ['POST'])
+def getInstanceInfo():
+    
+    db = get_db()    
+    
+    #IN THE FUTURE, CHECK IF INSTANCE IN USER CLUSTERS
+    #userClusterIds = db.users.find_one({'_id':request.json['user']},{'_id':0,'clusters':1})['clusters']
+    
+    status = db.clusters.find_one({'_id':ObjectId(request.json['cid']), 'nodes':{'$elemMatch': {'inst': request.json['iid']}}},{'nodes.$.status':1})['nodes'][0]['status']
+               
+    return jsonify({'r':status})
