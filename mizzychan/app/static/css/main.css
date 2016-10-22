@@ -135,6 +135,31 @@ font-weight: bold;
 text-decoration: none;
 }
 
+.upload-button{
+	padding-top: 7px;
+	background-color: #89FF45;
+	font-size: 22px;
+	color: black;
+ 	
+}
+
+.upload-button-2{
+	padding-top: 7px;
+	background-color: #89FF45;
+	font-size: 15px;
+	color: black;
+ 	
+}
+
+.upload-button-3{
+	padding-top: 7px;
+	background-color: red;
+	font-size: 15px;
+	color: white;
+ 	
+}
+
+
 /*!
  * Start Bootstrap - 3 Col Portfolio (http://startbootstrap.com/)
  * Copyright 2013-2016 Start Bootstrap
