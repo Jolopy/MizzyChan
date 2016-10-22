@@ -17,6 +17,26 @@ def chat():
 
     return render_template('chattest.html')
 
+@chan_B.route('/categories/<category>', methods = ['GET'])
+def categories(category):
+    print category
+
+    labels={'Top_Rated':'Top Rated',
+            'US_News': 'US News',
+            'World_News':'World News',
+            'Politics':'Politics',
+            'Science':'Science',
+            'Technology':'Technology',
+            'Entertainment':'Entertainment',
+            'Business':'Business',
+            'Gaming':'Gaming',
+            'Sports':'Sports',
+            'Health':'Health',
+            'Memes':'Memes'}
+    name = labels[category]
+
+    return render_template('categories.html', categoryName=name)
+
 @socketio.on('connect', namespace='/MISChat')
 def connect2():
     # join_room(session['user'])
