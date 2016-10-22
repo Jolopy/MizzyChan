@@ -9,6 +9,7 @@ import traceback
 from functions import get_db
 from blueprint_static import static_B
 from blueprint_users import users_B
+from blueprint_chan import chan_B
 from sessions import MongoSessionInterface
 from flask_socketio import SocketIO, emit
 
@@ -20,6 +21,7 @@ logr = logging.getLogger('mizzychan.views')
 
 app.register_blueprint(static_B)
 app.register_blueprint(users_B)
+app.register_blueprint(chan_B)
 
 #LSO = SessionObject.SessionObject()
 
