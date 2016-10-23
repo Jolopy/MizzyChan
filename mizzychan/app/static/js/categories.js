@@ -18,10 +18,10 @@ minutes_seconds = minutes * 60 +seconds;
 console.log (minutes_seconds)
 
 timestuff = minutes_seconds;
-do{
-    timestuff = timestuff - 900;
+
+while (timestuff >= 900){
+	timestuff = timestuff - 900;
 }
-while (timestuff >= 900);
 
 timestuff = (timestuff - 900)*(-1);
 
