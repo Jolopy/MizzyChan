@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Star rating widget example</title>
+    <link rel="stylesheet" href="stylesheet.css">
+    <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+    <script>
+        function select1() {
+            document.getElementById("1star").disabled = true;
+            document.getElementById("2star").disabled = true;
+            document.getElementById("3star").disabled = true;
+	    document.getElementById("4star").disabled = true;
+	    document.getElementById("5star").disabled = true;
+        }
+        function select2() {
+            document.getElementById("1star").disabled = true;
+            document.getElementById("2star").disabled = true;
+            document.getElementById("3star").disabled = true;
+	    document.getElementById("4star").disabled = true;
+	    document.getElementById("5star").disabled = true;
+        }
+        function select3() {
+            document.getElementById("1star").disabled = true;
+            document.getElementById("2star").disabled = true;
+            document.getElementById("3star").disabled = true;
+	    document.getElementById("4star").disabled = true;
+	    document.getElementById("5star").disabled = true;
+        }
+        function select4() {
+            document.getElementById("1star").disabled = true;
+            document.getElementById("2star").disabled = true;
+	    document.getElementById("3star").disabled = true;
+	    document.getElementById("4star").disabled = true;
+	    document.getElementById("5star").disabled = true;
+        }
+        function select5() {
+            document.getElementById("1star").disabled = true;
+            document.getElementById("2star").disabled = true;
+	    document.getElementById("3star").disabled = true;
+	    document.getElementById("4star").disabled = true;
+	    document.getElementById("5star").disabled = true;
+        }
+    </script>
+  </head>
+  <body>
+    <p>
+      Rating:
+      <span class="starRating">
+        <input onclick="select5();" id="5star" type="radio" name="rating" value="5">
+        <label for="5star">5</label>
+        <input onclick="select4();" id="4star" type="radio" name="rating" value="4">
+        <label for="4star">4</label>
+        <input onclick="select3();" id="3star" type="radio" name="rating" value="3">
+        <label for="3star">3</label>
+        <input onclick="select2();" id="2star" type="radio" name="rating" value="2">
+        <label for="2star">2</label>
+        <input onclick="select1();" id="1star" type="radio" name="rating" value="1">
+        <label for="1star">1</label>
+      </span>
+    </p>
+  </body>
+</html>
