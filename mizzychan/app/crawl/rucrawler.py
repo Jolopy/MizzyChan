@@ -1,6 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
-
+'''
 def getMemes():
     memep1URL="http://www.quickmeme.com/page/1/"
     memep2URL="http://www.quickmeme.com/page/2/"
@@ -71,8 +71,9 @@ def getMemes():
    
     outf.close()
     
-
+'''
 def getPolitics():
+    
     nytimesURL="http://www.nytimes.com/pages/politics"
     cnnURL="http://www.cnn.com/specials/politics/national-politics"
     foxnewsURL="http://www.foxnews.com/politics"
@@ -154,28 +155,95 @@ def getPolitics():
             washingtonpostnewsLinks,guardiannewsLinks,nydailynewsLinks]
 
     politicsLinks=[]
+    politicsLinksFinal=[]
+    politicsLinksTitle=[]
+    politicsLinksTitleFinal=[]
     pointer=0
     
     listLength=len(linkList)
-    outf=open("PoliticsLinks.txt",'w')
+    #outf=open("PoliticsLinks.txt",'w')
     
     for i in range(listLength):
         for link in linkList[pointer]:
-            if link.get("href") is None:
+            tempURL=link.get("href")
+            if tempURL is None:
                 continue
-            else:
-                politicsLinks.append(link.get("href"))
-           
+            if tempURL.startswith("http://www.nytimes.com/2016/"):
+                dictionary={}
+                dictionary['category']='politics'
+                dictionary['url']=tempURL
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    politicsLinks.append(dictionary)
+            if tempURL.startswith("http://www.foxnews.com/politics/2016/10/"):
+                dictionary={}
+                dictionary['category']='politics'
+                dictionary['url']=tempURL
+                dictionary['title']=link.get_text().replace('\n','')
+                
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    politicsLinks.append(dictionary)
+            if tempURL.startswith("/2016/10/") or tempURL.startswith("/politics/2016/10/"):
+                cnnFix='http://www.cnn.com'
+                cnnResolved=cnnFix+tempURL
+                dictionary={}
+                dictionary['category']='politics'
+                dictionary['url']=cnnResolved
+                dictionary['title']=link.get_text().replace('\n','')
+                dictionary['title']=link.get_text().replace('\t','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    politicsLinks.append(dictionary)
+            if tempURL.startswith('http://abcnews.go.com/Politics/'):
+                dictionary={}
+                dictionary['url']=tempURL
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    politicsLinks.append(dictionary)
+            if tempURL.startswith("/article/us-usa-election"):
+                reutersFix='http://www.reuters.com'
+                reutersResolved=reutersFix+tempURL
+                dictionary={}
+                dictionary['category']='politics'
+                dictionary['url']=reutersResolved
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    politicsLinks.append(dictionary)
+            if tempURL.startswith("http://time.com/453") or tempURL.startswith("http://time.com/454"):
+                dictionary={}
+                dictionary['category']='politics'
+                dictionary['url']=tempURL
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    politicsLinks.append(dictionary)
+            if tempURL.startswith("https://www.washingtonpost.com/news/post-politics/wp/2016/") or tempURL.startswith("https://www.washingtonpost.com/news/the-fix/wp/2016/"):
+                dictionary={}
+                dictionary['category']='politics'
+                dictionary['url']=tempURL
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    politicsLinks.append(dictionary)
+            if tempURL.startswith("https://www.theguardian.com/us-news/2016/"):
+                dictionary={}
+                dictionary['category']='politics'
+                dictionary['url']=tempURL
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    politicsLinks.append(dictionary)
+            if tempURL.startswith("http://www.nydailynews.com/news/politics"):
+                dictionary={}
+                dictionary['category']='politics'
+                dictionary['url']=tempURL
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    politicsLinks.append(dictionary)
+                
         pointer+=1
 
-    for url in list(set(politicsLinks)):
-        outf.write(url)
-        outf.write('\n')
-   
-    outf.close()
-    
+    return politicsLinks
 
+ 
 def getBusiness():
+    
     nytimesURL="http://www.nytimes.com/pages/business"
     cnnURL="http://www.money.cnn.com"
     foxnewsURL="http://www.foxbusiness.com"
@@ -264,77 +332,107 @@ def getBusiness():
     
     for i in range(listLength):
         for link in linkList[pointer]:
-            if link.get("href") is None:
+            tempURL=link.get("href")
+            
+            if tempURL is None:
                 continue
-            else:
-                businessLinks.append(link.get("href"))
-           
+            if tempURL.startswith("http://www.nytimes.com/2016/"):
+                dictionary={}
+                dictionary['category']='business'
+                dictionary['url']=tempURL
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    businessLinks.append(dictionary)
+            if tempURL.startswith("/markets/2016") or tempURL.startswith("/politics/2016") or tempURL.startswith("/features/2016") or tempURL.startswith("/investing/2016"):
+                foxFix='http://www.foxbusiness.com'
+                foxResolve=foxFix+tempURL
+                dictionary={}
+                dictionary['category']='business'
+                dictionary['url']=foxResolve
+                dictionary['title']=link.get_text().replace('\n','')
+                
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    businessLinks.append(dictionary)
+            if tempURL.startswith("/2016/10/"):
+                cnnFix='http://www.money.cnn.com'
+                cnnResolved=cnnFix+tempURL
+                dictionary={}
+                dictionary['category']='business'
+                dictionary['url']=cnnResolved
+                dictionary['title']=link.get_text().replace('\n','')
+                dictionary['title']=link.get_text().replace('\t','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    businessLinks.append(dictionary)
+            if tempURL.startswith('http://abcnews.go.com/Business/'):
+                dictionary={}
+                dictionary['category']='business'
+                dictionary['url']=tempURL
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    businessLinks.append(dictionary)
+            if tempURL.startswith("/article/"):
+                reutersFix='http://www.reuters.com'
+                reutersResolved=reutersFix+tempURL
+                dictionary={}
+                dictionary['category']='business'
+                dictionary['url']=reutersResolved
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    businessLinks.append(dictionary)
+            if tempURL.startswith("/news/business-1") or tempURL.startswith("/news/business-2") or tempURL.startswith("/news/business-3"):
+                bbcFix='http://www.bbc.com'
+                bbcResolved=bbcFix+tempURL
+                dictionary={}
+                dictionary['category']='business'
+                dictionary['url']=bbcResolved
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    businessLinks.append(dictionary)
+            if tempURL.startswith("/business/consumer/") or tempURL.startswith("/business/personal-finance/") or tempURL.startswith("/business/economy/") or tempURL.startswith("/business/markets/"):
+                nbcFix='http://www.nbcnews.com'
+                nbcResolved=nbcFix+tempURL
+                dictionary={}
+                dictionary['category']='business'
+                dictionary['url']=nbcResolved
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    businessLinks.append(dictionary)
+            if tempURL.startswith("/story/money/"):
+                usatodayFix='http://www.usatoday.com'
+                usatodayResolved=usatodayFix+tempURL
+                dictionary={}
+                dictionary['category']='business'
+                dictionary['url']=usatodayResolved
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    businessLinks.append(dictionary)
+            if tempURL.startswith("http://time.com/453") or tempURL.startswith("http://time.com/454"):
+                dictionary={}
+                dictionary['category']='business'
+                dictionary['url']=tempURL
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    businessLinks.append(dictionary)
+            if tempURL.startswith("https://www.washingtonpost.com/news/business/economy/") or  tempURL.startswith("https://www.washingtonpost.com/news/on-small-business/wp/2016/")or tempURL.startswith("https://www.washingtonpost.com/news/wonk/wp/2016/") or tempURL.startswith("https://www.washingtonpost.com/news/on-leadership/wp/2016/") or tempURL.startswith("https://www.washingtonpost.com/news/get-there/wp/2016/") or  tempURL.startswith("https://www.washingtonpost.com/news/the-swtich/wp/2016/") or tempURL.startswith("https://www.washingtonpost.com/news/capital-business/wp/2016/"):
+                dictionary={}
+                dictionary['category']='business'
+                dictionary['url']=tempURL
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    businessLinks.append(dictionary)
+            if tempURL.startswith("https://www.theguardian.com/business/2016/") or  tempURL.startswith("https://www.theguardian.com/us-news/2016/") or tempURL.startswith("https://www.theguardian.com/technology/2016/") or tempURL.startswith("https://www.theguardian.com/environment/2016/") or tempURL.startswith("https://www.theguardian.com/world/2016/") or tempURL.startswith("https://www.theguardian.com/sustainable-business/2016/"):
+                dictionary={}
+                dictionary['category']='business'
+                dictionary['url']=tempURL
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    businessLinks.append(dictionary)
+                    
         pointer+=1
+            
+    return businessLinks
 
-    for url in list(set(businessLinks)):
-        outf.write(url)
-        outf.write('\n')
-   
-    outf.close()
 
-def getGaming():
-    
-    n4gnewsURL="http://n4g.com/?tab=trending"
-    cnetnewsURL="https://www.cnet.com/games/"
-    engadgetnewsURL="https://www.engadget.com/gaming/"
-    techradarnewsURL="http://www.techradar.com/news/gaming"
-    digitalspynewsURL="http://www.digitalspy.com/gaming/"
-    thevergenewsURL="http://www.theverge.com/games"
-    polygonnewsURL="https://www.polygon.com/news"
-    
-    r_n4gnews=requests.get(n4gnewsURL)
-    r_cnetnews=requests.get(cnetnewsURL)
-    r_engadgetnews=requests.get(engadgetnewsURL)
-    r_techradernews=requests.get(techradarnewsURL)
-    r_digitalspynews=requests.get(digitalspynewsURL)
-    r_thevergenews=requests.get(thevergenewsURL)
-    r_polygonnews=requests.get(polygonnewsURL)
-    
-    n4gnewsSoup=BeautifulSoup(r_n4gnews.content, "lxml")
-    cnetnewsSoup=BeautifulSoup(r_cnetnews.content, "lxml")
-    engadgetnewsSoup=BeautifulSoup(r_engadgetnews.content, "lxml")
-    techradarnewsSoup=BeautifulSoup(r_techradernews.content, "lxml")
-    digitalspynewsSoup=BeautifulSoup(r_digitalspynews.content, "lxml")
-    thevergenewsSoup=BeautifulSoup(r_thevergenews.content, "lxml")
-    polygonnewsSoup=BeautifulSoup(r_polygonnews.content, "lxml")
-    
-    n4gnewsLinks=n4gnewsSoup.find_all("a")
-    cnetnewsLinks=cnetnewsSoup.find_all("a")
-    engadgetnewsLinks=engadgetnewsSoup.find_all("a")
-    techradarnewsLinks=techradarnewsSoup.find_all("a")
-    digitalspynewsLinks=techradarnewsSoup.find_all("a")
-    thevergenewsLinks=thevergenewsSoup.find_all("a")
-    polygonnewsLinks=polygonnewsSoup.find_all("a")
-    
-    linkList=[n4gnewsLinks,cnetnewsLinks,engadgetnewsLinks,techradarnewsLinks,digitalspynewsLinks,
-              thevergenewsLinks,polygonnewsLinks]
-    
-    gamingLinks=[]
-    pointer=0
-    
-    listLength=len(linkList)
-    outf=open("GamingLinks.txt",'w')
-    
-    for i in range(listLength):
-        for link in linkList[pointer]:
-            if link.get("href") is None:
-                continue
-            else:
-                gamingLinks.append(link.get("href"))
-           
-        pointer+=1
-
-    for url in list(set(gamingLinks)):
-        outf.write(url)
-        outf.write('\n')
-   
-    outf.close()
-    
 def getWorldNews():
     
     nytimesURL="http://www.nytimes.com/pages/world"
@@ -416,7 +514,7 @@ def getWorldNews():
     linkList=[nytimesLinks,cnnLinks,foxnewsLinks,abcnewsLinks,reutersnewsLinks,
             bbcnewsLinks,nbcnewsLinks,usatodaynewsLinks,timenewsLinks,guardiannewsLinks]
 
-    businessLinks=[]
+    worldNewsLinks=[]
     pointer=0
     
     listLength=len(linkList)
@@ -424,20 +522,104 @@ def getWorldNews():
     
     for i in range(listLength):
         for link in linkList[pointer]:
-            if link.get("href") is None:
+            tempURL=link.get("href")
+            
+            if tempURL is None:
                 continue
-            else:
-                businessLinks.append(link.get("href"))
-           
+            if tempURL.startswith("http://www.nytimes.com/2016/"):
+                dictionary={}
+                dictionary['category']='world news'
+                dictionary['url']=tempURL
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    worldNewsLinks.append(dictionary)
+            if tempURL.startswith("/world/2016/10/"):
+                foxFix='http://www.foxnews.com'
+                foxResolve=foxFix+tempURL
+                dictionary={}
+                dictionary['category']='world news'
+                dictionary['url']=foxResolve
+                dictionary['title']=link.get_text().replace('\n','')
+                
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    worldNewsLinks.append(dictionary)
+            if tempURL.startswith("/2016/10/"):
+                cnnFix='http://www.cnn.com'
+                cnnResolved=cnnFix+tempURL
+                dictionary={}
+                dictionary['category']='world news'
+                dictionary['url']=cnnResolved
+                dictionary['title']=link.get_text().replace('\n','')
+                dictionary['title']=link.get_text().replace('\t','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    worldNewsLinks.append(dictionary)
+            if tempURL.startswith("/International/wireStory"):
+                abcFix='http://www.abcnews.go.com'
+                abcResolved=abcFix+tempURL
+                dictionary={}
+                dictionary['category']='world news'
+                dictionary['url']=abcResolved
+                dictionary['title']=link.get_text().replace('\n','')
+                dictionary['title']=link.get_text().replace('\t','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    worldNewsLinks.append(dictionary)
+            if tempURL.startswith("/article/") or tempURL.startswith("/video/2016/10/"):
+                reutersFix='http://www.reuters.com'
+                reutersResolved=reutersFix+tempURL
+                dictionary={}
+                dictionary['category']='world news'
+                dictionary['url']=reutersResolved
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    worldNewsLinks.append(dictionary)
+            if tempURL.startswith("/news/world-africa") or tempURL.startswith("/news/world-europe") or tempURL.startswith("/news/world-us"):
+                bbcFix='http://www.bbc.com'
+                bbcResolved=bbcFix+tempURL
+                dictionary={}
+                dictionary['category']='world news'
+                dictionary['url']=bbcResolved
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    worldNewsLinks.append(dictionary)
+            if tempURL.startswith("/news/world/"):
+                nbcFix='http://www.nbcnews.com'
+                nbcResolved=nbcFix+tempURL
+                dictionary={}
+                dictionary['category']='world news'
+                dictionary['url']=nbcResolved
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    worldNewsLinks.append(dictionary)
+            if tempURL.startswith("/story/news/world/2016/10/"):
+                usatodayFix='http://www.usatoday.com'
+                usatodayResolved=usatodayFix+tempURL
+                dictionary={}
+                dictionary['category']='world news'
+                dictionary['url']=usatodayResolved
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    worldNewsLinks.append(dictionary)
+            if tempURL.startswith("http://time.com/453") or tempURL.startswith("http://time.com/454"):
+                dictionary={}
+                dictionary['category']='world news'
+                dictionary['url']=tempURL
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    worldNewsLinks.append(dictionary)
+            
+            if tempURL.startswith("https://www.theguardian.com/world/2016/oct/"):
+                dictionary={}
+                dictionary['category']='world news'
+                dictionary['url']=tempURL
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    worldNewsLinks.append(dictionary)
+                    
         pointer+=1
+            
+    return worldNewsLinks
 
-    for url in list(set(businessLinks)):
-        outf.write(url)
-        outf.write('\n')
-   
-    outf.close()
-    
-    
+
 def getUSNews():
     
     nytimesURL="http://www.nytimes.com/section/us"
@@ -519,7 +701,7 @@ def getUSNews():
     linkList=[nytimesLinks,cnnLinks,foxnewsLinks,abcnewsLinks,reutersnewsLinks,
             bbcnewsLinks,nbcnewsLinks,usatodaynewsLinks,timenewsLinks,guardiannewsLinks]
 
-    businessLinks=[]
+    USNewsLinks=[]
     pointer=0
     
     listLength=len(linkList)
@@ -527,18 +709,102 @@ def getUSNews():
     
     for i in range(listLength):
         for link in linkList[pointer]:
-            if link.get("href") is None:
+            tempURL=link.get("href")
+            
+            if tempURL is None:
                 continue
-            else:
-                businessLinks.append(link.get("href"))
-           
+            if tempURL.startswith("http://www.nytimes.com/2016/"):
+                dictionary={}
+                dictionary['category']='US news'
+                dictionary['url']=tempURL
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    USNewsLinks.append(dictionary)
+            if tempURL.startswith("/us/2016/10/"):
+                foxFix='http://www.foxnews.com'
+                foxResolve=foxFix+tempURL
+                dictionary={}
+                dictionary['category']='US news'
+                dictionary['url']=foxResolve
+                dictionary['title']=link.get_text().replace('\n','')
+                
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    USNewsLinks.append(dictionary)
+            if tempURL.startswith("/2016/10/"):
+                cnnFix='http://www.cnn.com'
+                cnnResolved=cnnFix+tempURL
+                dictionary={}
+                dictionary['category']='US news'
+                dictionary['url']=cnnResolved
+                dictionary['title']=link.get_text().replace('\n','')
+                dictionary['title']=link.get_text().replace('\t','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    USNewsLinks.append(dictionary)
+            if tempURL.startswith("/US/wireStory/"):
+                abcFix='http://www.abcnews.go.com'
+                abcResolved=abcFix+tempURL
+                dictionary={}
+                dictionary['category']='US news'
+                dictionary['url']=abcResolved
+                dictionary['title']=link.get_text().replace('\n','')
+                dictionary['title']=link.get_text().replace('\t','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    USNewsLinks.append(dictionary)
+            if tempURL.startswith("/article/") or tempURL.startswith("/video/2016/10/"):
+                reutersFix='http://www.reuters.com'
+                reutersResolved=reutersFix+tempURL
+                dictionary={}
+                dictionary['category']='US news'
+                dictionary['url']=reutersResolved
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    USNewsLinks.append(dictionary)
+            if tempURL.startswith("/news/election-us") or tempURL.startswith("/news/world-us"):
+                bbcFix='http://www.bbc.com'
+                bbcResolved=bbcFix+tempURL
+                dictionary={}
+                dictionary['category']='US news'
+                dictionary['url']=bbcResolved
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    USNewsLinks.append(dictionary)
+            if tempURL.startswith("/news/us-news/"):
+                nbcFix='http://www.nbcnews.com'
+                nbcResolved=nbcFix+tempURL
+                dictionary={}
+                dictionary['category']='US news'
+                dictionary['url']=nbcResolved
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    USNewsLinks.append(dictionary)
+            if tempURL.startswith("/story/news/nation-now/2016/10/"):
+                usatodayFix='http://www.usatoday.com'
+                usatodayResolved=usatodayFix+tempURL
+                dictionary={}
+                dictionary['category']='US news'
+                dictionary['url']=usatodayResolved
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    USNewsLinks.append(dictionary)
+            if tempURL.startswith("http://time.com/453") or tempURL.startswith("http://time.com/454"):
+                dictionary={}
+                dictionary['category']='US news'
+                dictionary['url']=tempURL
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    USNewsLinks.append(dictionary)
+            
+            if tempURL.startswith("https://www.theguardian.com/us-news/2016/oct/"):
+                dictionary={}
+                dictionary['category']='US news'
+                dictionary['url']=tempURL
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    USNewsLinks.append(dictionary)
+                    
         pointer+=1
-
-    for url in list(set(businessLinks)):
-        outf.write(url)
-        outf.write('\n')
-   
-    outf.close()
+            
+    return USNewsLinks
 
 def getEntertainment():
     
@@ -621,7 +887,7 @@ def getEntertainment():
     linkList=[nytimesLinks,cnnLinks,foxnewsLinks,abcnewsLinks,reutersnewsLinks,
             bbcnewsLinks,usatodaynewsLinks,timenewsLinks,guardiannewsLinks]
 
-    businessLinks=[]
+    entertainmentLinks=[]
     pointer=0
     
     listLength=len(linkList)
@@ -629,19 +895,103 @@ def getEntertainment():
     
     for i in range(listLength):
         for link in linkList[pointer]:
-            if link.get("href") is None:
+            tempURL=link.get("href")
+            
+            if tempURL is None:
                 continue
-            else:
-                businessLinks.append(link.get("href"))
-           
+            if tempURL.startswith("http://www.nytimes.com/2016/"):
+                dictionary={}
+                dictionary['category']='entertainment'
+                dictionary['url']=tempURL
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    entertainmentLinks.append(dictionary)
+            if tempURL.startswith("/entertainment/2016/10/"):
+                foxFix='http://www.foxnews.com'
+                foxResolve=foxFix+tempURL
+                dictionary={}
+                dictionary['category']='entertainment'
+                dictionary['url']=foxResolve
+                dictionary['title']=link.get_text().replace('\n','')
+                
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    entertainmentLinks.append(dictionary)
+            if tempURL.startswith("/2016/10/"):
+                cnnFix='http://www.cnn.com'
+                cnnResolved=cnnFix+tempURL
+                dictionary={}
+                dictionary['category']='entertainment'
+                dictionary['url']=cnnResolved
+                dictionary['title']=link.get_text().replace('\n','')
+                dictionary['title']=link.get_text().replace('\t','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    entertainmentLinks.append(dictionary)
+            if tempURL.startswith("/Entertainment/"):
+                abcFix='http://www.abcnews.go.com'
+                abcResolved=abcFix+tempURL
+                dictionary={}
+                dictionary['category']='entertainment'
+                dictionary['url']=abcResolved
+                dictionary['title']=link.get_text().replace('\n','')
+                dictionary['title']=link.get_text().replace('\t','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    entertainmentLinks.append(dictionary)
+            if tempURL.startswith("/article/") or tempURL.startswith("/video/2016/10/"):
+                reutersFix='http://www.reuters.com'
+                reutersResolved=reutersFix+tempURL
+                dictionary={}
+                dictionary['category']='entertainment'
+                dictionary['url']=reutersResolved
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    entertainmentLinks.append(dictionary)
+            if tempURL.startswith("/news/entertainment-arts"):
+                bbcFix='http://www.bbc.com'
+                bbcResolved=bbcFix+tempURL
+                dictionary={}
+                dictionary['category']='entertainment'
+                dictionary['url']=bbcResolved
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    entertainmentLinks.append(dictionary)
+            if tempURL.startswith("/pop-culture/"):
+                nbcFix='http://www.nbcnews.com'
+                nbcResolved=nbcFix+tempURL
+                dictionary={}
+                dictionary['category']='entertainment'
+                dictionary['url']=nbcResolved
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    entertainmentLinks.append(dictionary)
+            if tempURL.startswith("/story/life/2016/10/"):
+                usatodayFix='http://www.usatoday.com'
+                usatodayResolved=usatodayFix+tempURL
+                dictionary={}
+                dictionary['category']='entertainment'
+                dictionary['url']=usatodayResolved
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    entertainmentLinks.append(dictionary)
+            if tempURL.startswith("http://time.com/453") or tempURL.startswith("http://time.com/454"):
+                dictionary={}
+                dictionary['category']='entertainment'
+                dictionary['url']=tempURL
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    entertainmentLinks.append(dictionary)
+            
+            if tempURL.startswith("https://www.theguardian.com/tv-and-radio/2016/oct/") or tempURL.startswith("https://www.theguardian.com/music/2016/oct/") or tempURL.startswith("https://www.theguardian.com/books/2016/oct/") or tempURL.startswith("https://www.theguardian.com/culture/2016/oct/"):
+                dictionary={}
+                dictionary['category']='entertainment'
+                dictionary['url']=tempURL
+                dictionary['title']=link.get_text().replace('\n','')
+                if dictionary['title'] and not dictionary['title'].isspace():
+                    entertainmentLinks.append(dictionary)
+                    
         pointer+=1
-
-    for url in list(set(businessLinks)):
-        outf.write(url)
-        outf.write('\n')
-   
-    outf.close()
-    
+            
+    return entertainmentLinks
+'''
 def getSports():
     
     nytimesURL="http://www.nytimes.com/section/sports"
@@ -723,7 +1073,7 @@ def getSports():
     linkList=[nytimesLinks,cnnLinks,abcnewsLinks,reutersnewsLinks,
             nbcnewsLinks,usatodaynewsLinks,timenewsLinks,guardiannewsLinks]
 
-    businessLinks=[]
+    sportsLinks=[]
     pointer=0
     
     listLength=len(linkList)
@@ -734,11 +1084,11 @@ def getSports():
             if link.get("href") is None:
                 continue
             else:
-                businessLinks.append(link.get("href"))
+                sportsLinks.append(link.get("href"))
            
         pointer+=1
 
-    for url in list(set(businessLinks)):
+    for url in list(set(sportsLinks)):
         outf.write(url)
         outf.write('\n')
    
@@ -825,7 +1175,7 @@ def getTech():
     linkList=[nytimesLinks,cnnLinks,foxnewsLinks,abcnewsLinks,reutersnewsLinks,
             bbcnewsLinks,usatodaynewsLinks,timenewsLinks,guardiannewsLinks]
 
-    businessLinks=[]
+    techLinks=[]
     pointer=0
     
     listLength=len(linkList)
@@ -836,26 +1186,28 @@ def getTech():
             if link.get("href") is None:
                 continue
             else:
-                businessLinks.append(link.get("href"))
+                techLinks.append(link.get("href"))
            
         pointer+=1
 
-    for url in list(set(businessLinks)):
+    for url in list(set(techLinks)):
         outf.write(url)
         outf.write('\n')
    
     outf.close()
-    
-getPolitics()
-getBusiness()
-getMemes()
-getGaming()
-getWorldNews()
-getUSNews()
-getEntertainment()
-getSports()
-getTech()
+'''
+print(getPolitics())
+print(getBusiness())
+#getMemes()
 
+print(getWorldNews())
+print(getUSNews())
+print(getEntertainment())
+#getSports()
+#getTech()
+
+
+'''
 def indexMemes():
     inf=open("MemeLinks.txt", 'r')
     outf=open("MemeLinksFinal.txt", 'w')
@@ -866,207 +1218,8 @@ def indexMemes():
             outf.write(line)
     inf.close()
     outf.close()
-    
-def indexPolitics():
-    inf=open("PoliticsLinks.txt", 'r')
-    outf=open("PoliticsLinksFinal.txt", 'w')
-    
-    for line in inf:
-        line=inf.readline()
-        if line.startswith("http://www.nytimes.com/2016/"):
-            outf.write(line)
-        if line.startswith("/2016/10/") or line.startswith("/politics/2016/09") or line.startswith("/video/politics/2016/09"):
-            outf.write("http://www.cnn.com")
-            outf.write(line)
-        if line.startswith("http://www.foxnews.com/politics/2016/09/"):
-            outf.write(line)
-        if line.startswith("http://abcnews.go.com/Politics/"):
-            outf.write(line)
-        if line.startswith("/article/us-usa-election"):
-            outf.write("http://www.reuters.com")
-            outf.write(line)
-        if line.startswith("/news/election-us-2016"):
-            outf.write("http://www.bbc.com")
-            outf.write(line)
-        if line.startswith("/politics/2016-election/") and "primaries" not in line:
-            outf.write("http://nbcnews.com")
-            outf.write(line)
-        if line.startswith("/story/news/politics/"):
-            outf.write("http://www.usatoday.com")
-            outf.write(line)
-        if line.startswith("http://www.huffingtonpost.com/entry/"):
-            outf.write(line)
-        if line.startswith("http://time.com/453") or line.startswith("http://time.com/454"):
-            #the 451 will change based on time
-            outf.write(line)
-        if line.startswith("https://www.washingtonpost.com/news/post-politics/wp/2016/") or line.startswith("https://www.washingtonpost.com/news/the-fix/wp/2016/"):
-            outf.write(line)
-        if line.startswith("https://www.theguardian.com/us-news/2016/" or "https://www.theguardian.com/us-news/video/2016"):
-            outf.write(line)
-        
-        if line.startswith("http://www.nydailynews.com/news/politics"):
-            outf.write(line)
-       
-        
-    inf.close()
-    outf.close()
 
 
-def indexBusiness():
-    inf=open("BusinessLinks.txt", 'r')
-    outf=open("BusinessLinksFinal.txt", 'w')
-    
-    for line in inf:
-        line=inf.readline()
-        if line.startswith("http://www.nytimes.com/2016/"):
-            outf.write(line)
-        if line.startswith("/2016/10/"):
-            outf.write("http://www.money.cnn.com")
-            outf.write(line)
-        if line.startswith("/markets/2016") or line.startswith("/politics/2016") or line.startswith("/features/2016") or            line.startswith("/investing/2016"):
-            outf.write("http://www.foxbusiness.com")
-            outf.write(line)
-        if line.startswith("http://abcnews.go.com/Business/"):
-            outf.write(line)
-        if line.startswith("/Business/"):
-            outf.write("http://www.abcnews.go.com")
-            outf.write(line)
-        if line.startswith("/article/") or line.startswith("/video/2016"):
-            outf.write("http://www.reuters.com")
-            outf.write(line)
-        if line.startswith("/news/business-1") or line.startswith("/news/business-2") or line.startswith("/news/business-3"):
-            outf.write("http://www.bbc.com")
-            outf.write(line)
-        if line.startswith("/business/consumer/") or line.startswith("/business/personal-finance/") or line.startswith("/business/economy/") or line.startswith("/business/markets/"):
-            outf.write("http://nbcnews.com")
-            outf.write(line)
-        if line.startswith("/story/money/"):
-            outf.write("http://www.usatoday.com/money")
-            outf.write(line)
-        if line.startswith("http://www.huffingtonpost.com/entry/"):
-            outf.write(line)
-        if line.startswith("http://time.com/451"):
-            #the 451 will change based on time
-            outf.write(line)
-        if line.startswith("https://www.washingtonpost.com/news/business/economy/") or line.startswith("https://www.washingtonpost.com/news/on-small-business/wp/2016/") or line.startswith("https://www.washingtonpost.com/news/wonk/wp/2016/") or line.startswith("https://www.washingtonpost.com/news/on-leadership/wp/2016/") or line.startswith("https://www.washingtonpost.com/news/get-there/wp/2016/") or line.startswith("https://www.washingtonpost.com/news/the-swtich/wp/2016/") or line.startswith("https://www.washingtonpost.com/news/capital-business/wp/2016/"):
-            outf.write(line)
-        if line.startswith("https://www.theguardian.com/business/2016/") or line.startswith("https://www.theguardian.com/us-news/2016/") or line.startswith("https://www.theguardian.com/technology/2016/") or line.startswith("https://www.theguardian.com/environment/2016/") or line.startswith("https://www.theguardian.com/world/2016/") or line.startswith("https://www.theguardian.com/sustainable-business/2016/"):
-            outf.write(line)
-        
-        
-        
-    inf.close()
-    outf.close()
-
-def indexGaming():
-    
-    inf=open("GamingLinks.txt", 'r')
-    outf=open("GamingLinksFinal.txt", 'w')
-    
-    for line in inf:
-        if line.startswith("/news/1"):
-            outf.write("http://n4g.com")
-            outf.write(line)
-        if line.startswith("https://www.cnet.com/videos/") or line.startswith("http://www.cnet.com/news/"):
-            outf.write(line)
-        if line.startswith("/2016/"):
-            outf.write("https://www.engadget.com")
-            outf.write(line)
-        if line.startswith("http://www.techradar.com/news/") or line.startswith("http://www.techradar.com/reviews/"):
-            outf.write(line)
-        if line.startswith("/gaming/news/"):
-            outf.write("http://www.digitalspy.com")
-            outf.write(line)
-        if line.startswith("http://www.theverge.com/2016/"):
-            outf.write(line)
-        if line.startswith("https://www.polygon.com/2016/"):
-            outf.write(line)
-        
-def indexWorldNews():
-    
-    inf=open("WorldNewsLinks.txt", 'r')
-    outf=open("WorldNewsLinksFinal.txt", 'w')
-    
-    for line in inf:
-        line=inf.readline()
-        if line.startswith("http://www.nytimes.com/2016/"):
-            outf.write(line)
-        if line.startswith("/2016/10/"):
-            outf.write("http://www.cnn.com")
-            outf.write(line)
-        if line.startswith("/world/2016/10/"):
-            outf.write("http://www.foxnews.com")
-            outf.write(line)
-        if line.startswith("/International/wireStory"):
-            outf.write("http://www.abcnews.go.com")
-            outf.write(line)
-        if line.startswith("/article/") or line.startswith("/video/2016/10/"):
-            outf.write("http://www.reuters.com")
-            outf.write(line)
-        if line.startswith("/news/world-africa") or line.startswith("/news/world-europe") or line.startswith("/news/world-us"):
-            outf.write("http://www.bbc.com")
-            outf.write(line)
-        if line.startswith("/news/world/"):
-            outf.write("http://nbcnews.com")
-            outf.write(line)
-        if line.startswith("/story/news/world/2016/10/"):
-            outf.write("http://www.usatoday.com")
-            outf.write(line)
-        if line.startswith("http://www.huffingtonpost.com/entry/"):
-            outf.write(line)
-        if line.startswith("http://time.com/454") or line.startswith("http://time.com/453"):
-            #the 451 will change based on time
-            outf.write(line)
-        if line.startswith("https://www.theguardian.com/world/2016/oct/"):
-            outf.write(line)
-        
-        
-        
-    inf.close()
-    outf.close()
-
-def indexUSNews():
-    
-    inf=open("USNewsLinks.txt", 'r')
-    outf=open("USNewsLinksFinal.txt", 'w')
-    
-    for line in inf:
-        line=inf.readline()
-        if line.startswith("http://www.nytimes.com/2016/10/"):
-            outf.write(line)
-        if line.startswith("/2016/10/"):
-            outf.write("http://www.cnn.com")
-            outf.write(line)
-        if line.startswith("/us/2016/10/"):
-            outf.write("http://www.foxnews.com")
-            outf.write(line)
-        if line.startswith("/US/wireStory/"):
-            outf.write("http://www.abcnews.go.com")
-            outf.write(line)
-        if line.startswith("/article/") or line.startswith("/video/2016/10/"):
-            outf.write("http://www.reuters.com")
-            outf.write(line)
-        if line.startswith("/news/election-us") or line.startswith("/news/world-us"):
-            outf.write("http://www.bbc.com")
-            outf.write(line)
-        if line.startswith("/news/us-news/"):
-            outf.write("http://nbcnews.com")
-            outf.write(line)
-        if line.startswith("/story/news/nation-now/2016/10/"):
-            outf.write("http://www.usatoday.com")
-            outf.write(line)
-        if line.startswith("http://www.huffingtonpost.com/entry/"):
-            outf.write(line)
-        if line.startswith("http://time.com/454") or line.startswith("http://time.com/453"):
-            #the 451 will change based on time
-            outf.write(line)
-        if line.startswith("https://www.theguardian.com/us-news/2016/oct/"):
-            outf.write(line)
-        
-        
-        
-    inf.close()
-    outf.close()
     
 def indexEntertainment():
     
@@ -1187,17 +1340,13 @@ def indexTech():
     inf.close()
     outf.close()
     
-indexWorldNews()    
-indexPolitics()
+#indexWorldNews()    
+#indexPolitics()
 indexBusiness()
-indexMemes()
-indexGaming()
-indexUSNews()
-indexEntertainment()
-indexSports()
-indexTech()
-    
-
-
-
-
+#indexMemes()
+#indexGaming()
+#indexUSNews()
+#indexEntertainment()
+#indexSports()
+#indexTech()
+'''
