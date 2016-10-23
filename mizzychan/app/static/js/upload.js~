@@ -1,0 +1,15 @@
+
+$('#uploadbutton').click(function(){
+console.log
+    dictionary={}
+    dictionary['title']=$('#titleupload').val()
+    dictionary['url']=$('#urlupload').val()
+    dictionary['category']=$('#categoriesupload').val()
+    
+    
+    sendJS(dictionary,'upload',function(){
+
+    alert('Upload Succuess')   
+})
+
+})
