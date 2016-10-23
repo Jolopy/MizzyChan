@@ -16,9 +16,10 @@ def get_generic_article(url):
 
 def get_generic_image(url):
     t = lxml.html.parse(url)
+
     img = t.find("//img")
     return img.get('src')
 
-
+#print get_generic_image('http://www.quickmeme.com/p/3vzw6l')
 
 

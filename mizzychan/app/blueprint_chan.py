@@ -9,6 +9,7 @@ from functions import get_db
 import logging
 import string, random
 import requests
+from crawl import getArticle
 import datetime, calendar, time
 logr = logging.getLogger('SonicPlatform.blueprint_chan')
 chan_B = Blueprint('chan', __name__)
@@ -20,8 +21,6 @@ def helpchatclient():
 
 @chan_B.route('/changeUserName', methods = ['POST','GET'])
 def changeUserName():
-    print 'ok'
-    return jsonify({'ok': 1})
     if all(x in request.form for x in ('g-recaptcha-response', 'userNameChange')):
 
         dictToSend = {'secret': '6Ldw_wkUAAAAAJFyh_Pmg1KKyM_1ta4Rwg3smpEY',
@@ -37,17 +36,17 @@ def changeUserName():
     else:
         return jsonify({'ok': 0})
 
-labels={'Top_Rated':'Top Rated',
+labels={
             'US_News': 'US News',
             'World_News':'World News',
             'Politics':'Politics',
-            'Science':'Science',
+
             'Technology':'Technology',
             'Entertainment':'Entertainment',
             'Business':'Business',
-            'Gaming':'Gaming',
+
             'Sports':'Sports',
-            'Health':'Health',
+
             'Memes':'Memes'}
 
 @chan_B.route('/categories/<category>', methods = ['GET'])
@@ -95,7 +94,7 @@ def getCurrentArticle():
     intervals_passed = current_time // interval
 
     db = get_db()
-    article = db.articles.find({'category': request.json['category']}).sort([('content',-1),('$natural',-1)]).limit(1)
+    article = db.articles.find({'category': request.json['category']}).sort([('$natural',1)]).limit(1)
     if not article.count():
         return jsonify({'ok': 0, 'err': 'no articles!'})
     article = article[0]
@@ -104,16 +103,49 @@ def getCurrentArticle():
     if 'index' not in article:
         db.articles.update({'_id': article['_id']}, {'$set': {'index': intervals_passed}})
 
-    if 'index' in article and intervals_passed > article['index']:
+    elif 'index' in article and intervals_passed > article['index']:
         db.articles.remove({'_id':article['_id']})
-        article = db.articles.find({'category': request.json['category']}).sort([('content',-1),('$natural',-1)]).limit(1)
+        article = db.articles.find({'category': request.json['category']}).sort([('$natural',1)]).limit(1)
         if not article.count():
             return jsonify({'ok': 0, 'err': 'no articles!'})
         article = article[0]
+        db.articles.update({'_id': article['_id']}, {'$set': {'index': intervals_passed}})
 
     del article['_id']
     return jsonify({'ok':1, 'article':article})
 
+@chan_B.route('/upload', methods = ['POST'])
+def upload():
+    if not 'category' in request.json or not 'url' in request.json or not 'title' in request.json:
+        return jsonify({'ok':0, 'err':'Must provide category'})
+
+    category = request.json['category']
+    url = request.json['url']
+    title = request.json['title']
+    if category and url and title:
+        article = {'url':url,
+                   'title':title,
+                   'category':category}
+        try:
+            if 'title' not in article or not article['title'] or article['title'].isspace():
+                article['title'] = getArticle.get_generic_title(article['url'])
+        except:
+            pass
+        try:
+            article['content'] = getArticle.get_generic_article(article['url'])
+        except:
+            pass
+        try:
+            article['img'] = getArticle.get_generic_image(article['url'])
+        except:
+            pass
+        db = get_db()
+        try:
+            db.articles.insert(article)
+        except Exception, e:
+            print "unknown error: %s" % str(e)
+
+    return jsonify({'ok':1})
 
 
 @socketio.on('connect', namespace='/chat')

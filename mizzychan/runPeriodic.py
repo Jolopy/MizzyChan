@@ -21,16 +21,29 @@ def run():
     #           {'category': 'US_News',
     #            'url': 'http://www.nydailynews.com/news/politics/donald-trump-accused-groping-woman-breast-1998-u-s-open-article-1.2838346'}, ]  # articles
 
-    articles = rucrawler.getPolitics()
+    #articles = rucrawler.getPolitics()
+    #articles += rucrawler.getBusiness()
+    #articles += rucrawler.getEntertainment()
+    articles = rucrawler.getMemes()
+    #articles += rucrawler.getSports()
+    #articles += rucrawler.getTech()
+    #articles += rucrawler.getUSNews()
+    #articles += rucrawler.getWorldNews()
     conn, db = get_db()
     for article in articles:
         try:
             if 'title' not in article or not article['title'] or article['title'].isspace():
                 article['title'] = getArticle.get_generic_title(article['url'])
-            article['content'] = getArticle.get_generic_article(article['url'])
-            article['img'] = getArticle.get_generic_image(article['url'])
         except:
             pass
+        try:
+            article['content'] = getArticle.get_generic_article(article['url'])
+        except:
+            pass
+        try:
+            article['img'] = getArticle.get_generic_image(article['url'])
+        except Exception, e:
+            print e
         try:
             db.articles.insert(article)
         except pymongo.errors.DuplicateKeyError:

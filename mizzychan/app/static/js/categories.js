@@ -6,6 +6,7 @@ var seconds = now.getSeconds();
 console.log (minutes)
 
 var clock = $('.your-clock').FlipClock({
+    clockFace: 'MinuteCounter',
 	countdown: true,
     stop: function() {
 	    // do something
@@ -35,6 +36,8 @@ if(remainingTime <=1){
 }
 
 clock.start();
+
+
 
 function refreshArticle(){
     sendJS({'category':category}, 'getCurrentArticle', function(r){
