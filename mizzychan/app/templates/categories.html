@@ -44,7 +44,7 @@
 
         <div class="row" id="userNameChangeRow">
            <div class="col-md-4">
-               <form id="userNameChangeForm" method="post" action="changeUserName">
+               <form id="userNameChangeForm" method="post" action="/changeUserName">
                    <input type="text" id="userNameChange" name="userNameChange" class="form-control" style="width:100%">
                    <div class="g-recaptcha" data-sitekey="6Ldw_wkUAAAAAO4RtSrjRP8H8wxKDhFRkPs8rSu8"></div>
                    <input type="submit">
@@ -68,6 +68,11 @@
                 <button id="chatsendbtn" class='chatsendbtn' style="display:none;margin-left: 150;float: right;  margin-right: 125px; font-size: 20px; margin-top: 25px;">Send</button>
 
             </div>
+            <div class="col-md-12">
+                <h2>Heading 1</h2>
+                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Saepe rem nisi accusamus error velit animi non ipsa placeat. Recusandae, suscipit, soluta quibusdam accusamus a veniam quaerat eveniet eligendi dolor consectetur.</p>
+            </div>
+            <!-- /.col-md-4 -->
         </div>
         <!-- /.row -->
 
@@ -76,12 +81,10 @@
 
 {% block js %}
 <script>
-    var room = "{{ room }}";
+var room = "{{ categoryName }}";
 </script>
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.5/socket.io.js"></script>
 <script src="{{url_for('static', filename='js/chatclient.js')}}"></script>
-
-
 <script src="{{ url_for('static', filename='js/categories.js') }}"></script>
 
 {% endblock %}

@@ -17,8 +17,9 @@ def helpchatclient():
     room=request.args['room'] if 'room' in request.args else None
     return render_template('chattest.html', room=room)
 
-@chan_B.route('/changeUserName', methods = ['POST'])
+@chan_B.route('/changeUserName', methods = ['POST','GET'])
 def changeUserName():
+    print 'ok'
     return jsonify({'ok': 1})
     if all(x in request.form for x in ('g-recaptcha-response', 'userNameChange')):
 
@@ -35,12 +36,7 @@ def changeUserName():
     else:
         return jsonify({'ok': 0})
 
-
-@chan_B.route('/categories/<category>', methods = ['GET'])
-def categories(category):
-    print category
-
-    labels={'Top_Rated':'Top Rated',
+labels={'Top_Rated':'Top Rated',
             'US_News': 'US News',
             'World_News':'World News',
             'Politics':'Politics',
@@ -52,7 +48,14 @@ def categories(category):
             'Sports':'Sports',
             'Health':'Health',
             'Memes':'Memes'}
+
+@chan_B.route('/categories/<category>', methods = ['GET'])
+def categories(category):
+
     name = labels[category]
+
+    db = get_db()
+    db.articles.find_one({'category':category}, {'_id':0,'url':1,'title':1})
 
 
     return render_template('categories.html', categoryName=name)
@@ -89,7 +92,7 @@ def joined(user, room):
     #db.msgs.insert({'room':room, 'user':user, 'joined':True, 'time':tStamp})
 
     print 'user joined'
-    emit('joined', {'ok': 1, 'user': user}, room=room)
+    emit('joined', {'ok': 1, 'user': user, 'room':room}, room=room)
 
 
 # @socketio.on('checkUsersOnlineInit', namespace='/chat')
