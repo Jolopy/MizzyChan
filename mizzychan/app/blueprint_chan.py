@@ -8,7 +8,7 @@ from decorators import requireLoginLevel
 from functions import get_db
 import logging
 import string, random
-
+import requests
 logr = logging.getLogger('SonicPlatform.blueprint_chan')
 chan_B = Blueprint('chan', __name__)
 
@@ -16,6 +16,24 @@ chan_B = Blueprint('chan', __name__)
 def helpchatclient():
     room=request.args['room'] if 'room' in request.args else None
     return render_template('chattest.html', room=room)
+
+@chan_B.route('/changeUserName', methods = ['POST'])
+def changeUserName():
+    return jsonify({'ok': 1})
+    if all(x in request.form for x in ('g-recaptcha-response', 'userNameChange')):
+
+        dictToSend = {'secret': '6Ldw_wkUAAAAAJFyh_Pmg1KKyM_1ta4Rwg3smpEY',
+                      'response': request.form['g-recaptcha-response']}
+        res = requests.get('https://www.google.com/recaptcha/api/siteverify',
+                           params=dictToSend,
+                           verify=True)
+        if res.json()['success']:
+
+            return jsonify({'ok': 1})
+        else:
+            return jsonify({'ok': 0})
+    else:
+        return jsonify({'ok': 0})
 
 
 @chan_B.route('/categories/<category>', methods = ['GET'])
@@ -36,6 +54,7 @@ def categories(category):
             'Memes':'Memes'}
     name = labels[category]
 
+
     return render_template('categories.html', categoryName=name)
 
 
@@ -43,6 +62,7 @@ def categories(category):
 def connect2():
     # join_room(session['user'])
     # room = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(4))
+
     emit('connectConfirm')
 
 # 'disconnected' is a special event
@@ -54,21 +74,23 @@ def disconnected():
 def userDisconnect(user, room):
     #db = get_db()
     #db.msgs.insert({'room':room, 'user':user, 'left':True, 'time':tStamp})
-    print 'user dc'
+
     leave_room(room)
     emit('userDisconnect', {'ok': 1, 'user':user, 'room':room}, room=room)
 
 
 @socketio.on('joined', namespace='/chat')
 def joined(user, room):
+    join_room(room)
     #at some point, twisted will be implemented instead of this
     #loggedIn.addUser(user)
     #print loggedIn.getUsers()
     #db = get_db()
     #db.msgs.insert({'room':room, 'user':user, 'joined':True, 'time':tStamp})
+
     print 'user joined'
-    join_room(room)
-    emit('joined', {'user':user, 'room':room}, room=room)
+    emit('joined', {'ok': 1, 'user': user}, room=room)
+
 
 # @socketio.on('checkUsersOnlineInit', namespace='/chat')
 # def checkUsersOnlineInit():
@@ -83,8 +105,8 @@ def joined(user, room):
 
 @socketio.on('chatMsg', namespace='/chat')
 def chatMsg(user, room, data):
-    join_room(room)
-    emit('test1', {'user': user, 'data': data, 'room': room}, room=room)
+
+
     # #msgs.insert({'post':message})
     # if message != 'connected':
     #
