@@ -10,7 +10,10 @@ var clock = $('.your-clock').FlipClock({
     stop: function() {
 	    // do something
 	    // reset the counter and it will start again
-	    this.setTime(900);
+        console.log('here');
+        sendJS({'category':category}, 'getCurrentArticle', function(r){});
+        setTimeout(refreshArticle, 2200);
+	    this.setTime(interval);
     }
   });
 
@@ -25,6 +28,35 @@ while (timestuff >= 900){
 
 timestuff = (timestuff - 900)*(-1);
 
-clock.setTime(timestuff);
+if(remainingTime <=1){
+    clock.setTime(2);
+} else{
+    clock.setTime(remainingTime);
+}
+
 clock.start();
-console.log (timestuff);
+
+function refreshArticle(){
+    sendJS({'category':category}, 'getCurrentArticle', function(r){
+        if(r['ok']){
+            $('#articleContent').hide();
+            $('#articleImg').hide();
+            $('#articleTitle').text(r['article']['title']);
+            $('#articleLink').attr('href', r['article']['url']);
+            if('img' in r['article'] && r['article']['img']){
+                $('#articleImg').attr('src', r['article']['img']);
+                $('#articleImg').show();
+            }
+            if('content' in r['article'] && r['article']['content']){
+                //r['article']['content'].replace(/(?:\r\n|\r|\n)/g, '<br>')
+                $('#articleContent').html(r['article']['content'].replace(/(?:\r\n|\r|\n)/g, '<br>'));
+                $('#articleContent').show();
+            }
+
+        }
+
+
+    });
+}
+
+refreshArticle();

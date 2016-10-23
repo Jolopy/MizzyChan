@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-celery -A celeryworker  worker --loglevel=debug -B --concurrency=20
+celery -A celeryworker  worker --loglevel=debug --concurrency=2

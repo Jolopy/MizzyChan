@@ -98,8 +98,5 @@ def errpage_410(e):
 @app.errorhandler(500)
 def errpage_500(e):
     tb = traceback.format_exc()
-    try:
-        mailing.send_error_to_webmaster(tb)
-    except Exception, e:
-        print "Error sending error mail %s \n\n %s" % (str(tb), str(e))
+    print tb
     return render_template('error.html', error = {'type':500,'title':"500"})

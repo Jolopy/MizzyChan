@@ -170,14 +170,14 @@ def getPolitics():
                 continue
             if tempURL.startswith("http://www.nytimes.com/2016/"):
                 dictionary={}
-                dictionary['category']='politics'
+                dictionary['category']='Politics'
                 dictionary['url']=tempURL
                 dictionary['title']=link.get_text().replace('\n','')
                 if dictionary['title'] and not dictionary['title'].isspace():
                     politicsLinks.append(dictionary)
             if tempURL.startswith("http://www.foxnews.com/politics/2016/10/"):
                 dictionary={}
-                dictionary['category']='politics'
+                dictionary['category']='Politics'
                 dictionary['url']=tempURL
                 dictionary['title']=link.get_text().replace('\n','')
                 
@@ -187,7 +187,7 @@ def getPolitics():
                 cnnFix='http://www.cnn.com'
                 cnnResolved=cnnFix+tempURL
                 dictionary={}
-                dictionary['category']='politics'
+                dictionary['category']='Politics'
                 dictionary['url']=cnnResolved
                 dictionary['title']=link.get_text().replace('\n','')
                 dictionary['title']=link.get_text().replace('\t','')
@@ -203,35 +203,35 @@ def getPolitics():
                 reutersFix='http://www.reuters.com'
                 reutersResolved=reutersFix+tempURL
                 dictionary={}
-                dictionary['category']='politics'
+                dictionary['category']='Politics'
                 dictionary['url']=reutersResolved
                 dictionary['title']=link.get_text().replace('\n','')
                 if dictionary['title'] and not dictionary['title'].isspace():
                     politicsLinks.append(dictionary)
             if tempURL.startswith("http://time.com/453") or tempURL.startswith("http://time.com/454"):
                 dictionary={}
-                dictionary['category']='politics'
+                dictionary['category']='Politics'
                 dictionary['url']=tempURL
                 dictionary['title']=link.get_text().replace('\n','')
                 if dictionary['title'] and not dictionary['title'].isspace():
                     politicsLinks.append(dictionary)
             if tempURL.startswith("https://www.washingtonpost.com/news/post-politics/wp/2016/") or tempURL.startswith("https://www.washingtonpost.com/news/the-fix/wp/2016/"):
                 dictionary={}
-                dictionary['category']='politics'
+                dictionary['category']='Politics'
                 dictionary['url']=tempURL
                 dictionary['title']=link.get_text().replace('\n','')
                 if dictionary['title'] and not dictionary['title'].isspace():
                     politicsLinks.append(dictionary)
             if tempURL.startswith("https://www.theguardian.com/us-news/2016/"):
                 dictionary={}
-                dictionary['category']='politics'
+                dictionary['category']='Politics'
                 dictionary['url']=tempURL
                 dictionary['title']=link.get_text().replace('\n','')
                 if dictionary['title'] and not dictionary['title'].isspace():
                     politicsLinks.append(dictionary)
             if tempURL.startswith("http://www.nydailynews.com/news/politics"):
                 dictionary={}
-                dictionary['category']='politics'
+                dictionary['category']='Politics'
                 dictionary['url']=tempURL
                 dictionary['title']=link.get_text().replace('\n','')
                 if dictionary['title'] and not dictionary['title'].isspace():

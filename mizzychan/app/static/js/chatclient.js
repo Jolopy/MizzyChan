@@ -4,6 +4,7 @@ $(document).ready(function(){
     var user = makeid() + '-user';
     var onlineUsers = [];
     var awayUsers = [];
+    var room = category;
 
     $('#tmpUser').text(user);
 
