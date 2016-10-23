@@ -7,9 +7,37 @@
     <!-- Page Content -->
     <div class="container">
 
-        <!-- Projects Row -->
+
         <div class="row">
+           <span>User: <span id="tmpUser"></span></span>
+        </div>
+        <div class="row">
+
+            <div id="chatbox" style="color:black; background-color: #57D409; border: #7ED81B  outset 3px;">
+                <textarea disabled class="textoutput" style=" border: #9EFF01  outset 3px; background-color: rgba(255, 255, 255, 0.68);"></textarea>
+                <!--<div id="users">-->
+                    <!--<ul>-->
+                        <!--<li style="list-style:square outside none;">admin</li>-->
+                    <!--</ul>-->
+                <!--</div><br>-->
+                <textarea class="chatmsginput" style="width: 300px;height: 80px;"></textarea>
+                <button class='chatsendbtn' style="margin-left: 150;float: right;  margin-right: 125px; font-size: 20px; margin-top: 25px;">Send</button>
+
+            </div>
+
 
         </div>
         <!-- /.row -->
+
+
+
 {% endblock %}
+
+{% block js %}
+    <script>
+    var room = "{{ room }}";
+    </script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.5/socket.io.js"></script>
+<script src="{{url_for('static', filename='js/chatclient.js')}}"></script>
+{% endblock %}
+
