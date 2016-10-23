@@ -1,6 +1,6 @@
 
 $('#uploadbutton').click(function(){
-console.log
+console.log('poop');
     dictionary={}
     dictionary['title']=$('#titleupload').val()
     dictionary['url']=$('#urlupload').val()
