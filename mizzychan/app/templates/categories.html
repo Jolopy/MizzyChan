@@ -41,9 +41,36 @@
 
        <!-- Page Content -->
     <div class="container">
+        <div align="left">
+           <span>Username:<span id="tmpUser"></span></span>
+        </div>
+        <div class="row">
+
+            <div id="chatbox" style="color:black;">
+                <textarea disabled class="textoutput" style=" border: #9EFF01  outset 3px; background-color: rgba(255, 255, 255, 0.68);height:400px;width:70%; float:left;"></textarea>
+                <!--<div id="users">-->
+                    <!--<ul>-->
+                        <!--<li style="list-style:square outside none;">admin</li>-->
+                    <!--</ul>-->
+                <!--</div><br>-->
+                <br>
+                <br>
+                <br>
+                <br>
+                <br>
+                <br>
+                <br>
+                <br>
+                <br>
+                <textarea id="chatmsginput" class="chatmsginput" style="display:none;width: 30%;height: 80px; float:left;"></textarea>
+                <button id="chatsendbtn" class='chatsendbtn' style="display:none;margin-left: 150;float: left;  margin-right: 125px; font-size: 20px; margin-top: 25px;">Send</button>
+
+            </div>
+        </div>
 
         <div class="row" id="userNameChangeRow">
            <div class="col-md-4">
+           <h4>Enter A Username</h4>
                <form id="userNameChangeForm" method="post" action="/changeUserName">
                    <input type="text" id="userNameChange" name="userNameChange" class="form-control" style="width:100%">
                    <div class="g-recaptcha" data-sitekey="6Ldw_wkUAAAAAO4RtSrjRP8H8wxKDhFRkPs8rSu8"></div>
@@ -51,28 +78,6 @@
                </form>
                <span id="userNameChangeError"></span>
            </div>
-        </div>
-        <div class="row">
-           <span>User: <span id="tmpUser"></span></span>
-        </div>
-        <div class="row">
-
-            <div id="chatbox" style="color:black; background-color: #57D409; border: #7ED81B  outset 3px;">
-                <textarea disabled class="textoutput" style=" border: #9EFF01  outset 3px; background-color: rgba(255, 255, 255, 0.68);height:400px;width:400px;"></textarea>
-                <!--<div id="users">-->
-                    <!--<ul>-->
-                        <!--<li style="list-style:square outside none;">admin</li>-->
-                    <!--</ul>-->
-                <!--</div><br>-->
-                <textarea id="chatmsginput" class="chatmsginput" style="display:none;width: 300px;height: 80px;"></textarea>
-                <button id="chatsendbtn" class='chatsendbtn' style="display:none;margin-left: 150;float: right;  margin-right: 125px; font-size: 20px; margin-top: 25px;">Send</button>
-
-            </div>
-            <div class="col-md-12">
-                <h2>Heading 1</h2>
-                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Saepe rem nisi accusamus error velit animi non ipsa placeat. Recusandae, suscipit, soluta quibusdam accusamus a veniam quaerat eveniet eligendi dolor consectetur.</p>
-            </div>
-            <!-- /.col-md-4 -->
         </div>
         <!-- /.row -->
 
