@@ -9,6 +9,7 @@ from functions import get_db
 import logging
 import string, random
 import requests
+import datetime, calendar, time
 logr = logging.getLogger('SonicPlatform.blueprint_chan')
 chan_B = Blueprint('chan', __name__)
 
@@ -54,11 +55,65 @@ def categories(category):
 
     name = labels[category]
 
+
+
+    # getting the time until switch
+    interval = app.config['SWITCH_SECONDS']
+
+    current_time = calendar.timegm(time.gmtime())
+    remainingTime = interval - (current_time % interval)
+    print remainingTime
+
+
+
+
+    return render_template('categories.html', categoryName=name,
+                           category=category,
+                           remainingTime=remainingTime,
+                           interval=interval)
+
+@chan_B.route('/testArticles', methods = ['GET'])
+def testArticles():
+
     db = get_db()
-    db.articles.find_one({'category':category}, {'_id':0,'url':1,'title':1})
+    for i in range(30):
 
+        db.articles.insert({'url':'http://stackoverflow.com/questions/%d' % (5584586+i),
+                            'title':'test%d' % (5584586+i),
+                            'category':'Technology'})
 
-    return render_template('categories.html', categoryName=name)
+    return "OK"
+
+@chan_B.route('/getCurrentArticle', methods = ['POST'])
+def getCurrentArticle():
+    if not 'category' in request.json:
+        return jsonify({'ok':0, 'err':'Must provide category'})
+
+    interval = app.config['SWITCH_SECONDS']
+
+    current_time = calendar.timegm(time.gmtime())
+    intervals_passed = current_time // interval
+
+    db = get_db()
+    article = db.articles.find({'category': request.json['category']}).sort([('content',-1),('$natural',-1)]).limit(1)
+    if not article.count():
+        return jsonify({'ok': 0, 'err': 'no articles!'})
+    article = article[0]
+    #print article
+
+    if 'index' not in article:
+        db.articles.update({'_id': article['_id']}, {'$set': {'index': intervals_passed}})
+
+    if 'index' in article and intervals_passed > article['index']:
+        db.articles.remove({'_id':article['_id']})
+        article = db.articles.find({'category': request.json['category']}).sort([('content',-1),('$natural',-1)]).limit(1)
+        if not article.count():
+            return jsonify({'ok': 0, 'err': 'no articles!'})
+        article = article[0]
+
+    del article['_id']
+    return jsonify({'ok':1, 'article':article})
+
 
 
 @socketio.on('connect', namespace='/chat')
