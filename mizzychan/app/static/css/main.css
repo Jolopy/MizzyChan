@@ -182,3 +182,6 @@ footer {
 	transform: scale(0.7)
 }
 
+.navbar-brand{
+	font-size: 30px;
+}
