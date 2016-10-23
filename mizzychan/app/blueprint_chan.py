@@ -140,6 +140,7 @@ def upload():
         except:
             pass
         db = get_db()
+        print article
         try:
             db.articles.insert(article)
         except Exception, e:

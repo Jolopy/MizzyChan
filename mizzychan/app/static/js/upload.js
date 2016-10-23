@@ -1,15 +1,15 @@
 
 $('#uploadbutton').click(function(){
-console.log('poop');
+
     dictionary={}
-    dictionary['title']=$('#titleupload').val()
-    dictionary['url']=$('#urlupload').val()
+    dictionary['title']=$('#title-upload').val()
+    dictionary['url']=$('#url-upload').val()
     dictionary['category']=$('#categoriesupload').val()
     
     
     sendJS(dictionary,'upload',function(){
-
-    alert('Upload Succuess')   
-})
+        //alert('Upload Succuess')
+        $('.upload-button-3').eq(0).click();
+    })
 
 })
